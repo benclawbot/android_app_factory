@@ -1,0 +1,30 @@
+name: android_app_factory
+description: AI-powered Android app generator from natural language prompts.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.9.2
+  file_picker: ^10.3.10
+  path: ^1.9.0
+  path_provider: ^2.1.0
+  window_manager: ^0.5.1
+  provider: ^6.1.5
+  google_fonts: ^6.2.1
+  flutter_highlight: ^0.7.0
+  highlight: ^0.7.0
+  url_launcher: ^6.3.1
+  shared_preferences: ^2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
