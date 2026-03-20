@@ -151,9 +151,9 @@ class _ConsolePanelState extends State<ConsolePanel> {
                   ),
                   const SizedBox(width: 8),
                   TextButton.icon(
-                    onPressed: () => _openFolder(state.outputPath!),
+                    onPressed: () => _openInAndroidStudio(state.outputPath!),
                     icon: const Icon(Icons.folder_open, size: 14),
-                    label: const Text('Open Folder'),
+                    label: const Text('Open in Android Studio'),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.accent,
                       textStyle: const TextStyle(fontSize: 12),
@@ -204,10 +204,78 @@ class _ConsolePanelState extends State<ConsolePanel> {
     return AppColors.textSecondary;
   }
 
-  void _openFolder(String path) {
-    // Open folder in file explorer
+  /// Finds the Android Studio executable path on Windows.
+  String? _findAndroidStudio() {
+    // Common installation paths
+    final candidates = [
+      r'C:\Program Files\Android\Android Studio\bin\studio64.exe',
+      r'C:\Program Files\Android\Android Studio\bin\studio.exe',
+      // JetBrains Toolbox installations
+      r'C:\Users\thoma\AppData\Local\JetBrains\Toolbox\apps\AndroidStudio\**\bin\studio64.exe',
+    ];
+
+    for (final candidate in candidates) {
+      if (candidate.contains('**')) {
+        // Handle wildcard search for JetBrains Toolbox
+        final base = candidate.replaceAll('**', '');
+        try {
+          final dir = Directory(base);
+          if (dir.existsSync()) {
+            final studios = dir.listSync(recursive: true)
+                .whereType<File>()
+                .where((f) => f.path.endsWith('studio64.exe'))
+                .toList();
+            if (studios.isNotEmpty) {
+              return studios.first.path;
+            }
+          }
+        } catch (_) {}
+      } else {
+        try {
+          if (File(candidate).existsSync()) {
+            return candidate;
+          }
+        } catch (_) {}
+      }
+    }
+    return null;
+  }
+
+  /// Opens the project in Android Studio and triggers Gradle sync.
+  void _openInAndroidStudio(String projectPath) {
+    final studioPath = _findAndroidStudio();
+
+    if (studioPath != null) {
+      // Open project in Android Studio
+      try {
+        Process.start(studioPath, [projectPath]);
+      } catch (_) {}
+    } else {
+      // Fall back to File Explorer if Android Studio not found
+      try {
+        Process.start('explorer', [projectPath]);
+      } catch (_) {}
+      return;
+    }
+
+    // Trigger Gradle sync in background by running gradlew
+    _runGradleSync(projectPath);
+  }
+
+  /// Runs `gradlew.bat --refresh-dependencies` in a visible console window.
+  void _runGradleSync(String projectPath) {
+    final escapedPath = projectPath.replaceAll('/', r'\\');
+    final batPath = projectPath + r'\_sync_gradle.bat';
+    final batContent = '@echo off\n'
+        'title Gradle Sync\n' +
+        'cd /d "$escapedPath"\n' +
+        'gradlew.bat --refresh-dependencies\n' +
+        'echo.\necho === Gradle sync done. You can close this window ===\n' +
+        'pause\n';
     try {
-      Process.start('explorer', [path]);
+      File(batPath).writeAsStringSync(batContent);
+      // Start the batch file in a visible console window
+      Process.start('cmd.exe', ['/c', 'start', 'cmd', '/k', batPath]);
     } catch (_) {}
   }
 }
