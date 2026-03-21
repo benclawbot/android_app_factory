@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +9,7 @@ import 'package:path/path.dart' as p;
 import '../providers/app_provider.dart';
 import '../providers/generation_provider.dart';
 import '../providers/history_provider.dart';
+import '../services/icon_generator.dart';
 import '../theme/app_theme.dart';
 
 class PromptPanel extends StatefulWidget {
@@ -18,7 +22,18 @@ class PromptPanel extends StatefulWidget {
 class _PromptPanelState extends State<PromptPanel> {
   final _promptController = TextEditingController();
   final _appNameController = TextEditingController(text: 'MyApp');
-  final _packageController = TextEditingController(text: 'com.example.myapp');
+  final _packageController = TextEditingController(text: 'com.app.myapp');
+
+  // Icon preview state
+  Uint8List? _iconPreviewBytes;
+  bool _iconLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Generate initial icon preview
+    _regenerateIconPreview('MyApp');
+  }
 
   @override
   void dispose() {
@@ -26,6 +41,86 @@ class _PromptPanelState extends State<PromptPanel> {
     _appNameController.dispose();
     _packageController.dispose();
     super.dispose();
+  }
+
+  /// Derives a clean package name from [appName].
+  ///
+  /// "Recipe Book" → "com.app.recipebook"
+  /// "My Cool App!" → "com.app.mycoolapp"
+  String _derivePackageName(String appName) {
+    final sanitized = appName
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '');
+    if (sanitized.isEmpty) return 'com.app.myapp';
+    return 'com.app.$sanitized';
+  }
+
+  /// Called when the app name field changes — auto-updates package name and icon.
+  void _onAppNameChanged(String value) {
+    final appProv = context.read<AppProvider>();
+    appProv.setAppName(value);
+
+    // Auto-update package name
+    final pkg = _derivePackageName(value);
+    _packageController.text = pkg;
+    appProv.setPackageName(pkg);
+
+    // Regenerate icon preview (only if not using a custom icon)
+    if (appProv.customIconPath == null) {
+      _regenerateIconPreview(value);
+    }
+  }
+
+  /// Renders a fresh icon preview from the app name.
+  Future<void> _regenerateIconPreview(String appName, {String? customPath}) async {
+    if (_iconLoading) return;
+    setState(() => _iconLoading = true);
+
+    try {
+      Uint8List bytes;
+      if (customPath != null && File(customPath).existsSync()) {
+        bytes = await File(customPath).readAsBytes();
+      } else {
+        bytes = await IconGenerator.renderIcon(
+          appName: appName.isEmpty ? 'App' : appName,
+          size: 192,
+        );
+      }
+      if (mounted) {
+        setState(() {
+          _iconPreviewBytes = bytes;
+          _iconLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _iconLoading = false);
+    }
+  }
+
+  /// Lets the user pick a custom icon image file.
+  Future<void> _pickIcon() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+      dialogTitle: 'Select app icon image',
+    );
+    if (result == null || result.files.isEmpty) return;
+    if (!mounted) return;
+
+    final filePath = result.files.single.path;
+    if (filePath == null) return;
+
+    final appProv = context.read<AppProvider>();
+    appProv.setCustomIconPath(filePath);
+    _regenerateIconPreview(_appNameController.text.trim(), customPath: filePath);
+  }
+
+  /// Clears the custom icon and reverts to auto-generated.
+  void _clearCustomIcon() {
+    final appProv = context.read<AppProvider>();
+    appProv.setCustomIconPath(null);
+    _regenerateIconPreview(_appNameController.text.trim());
   }
 
   @override
@@ -76,26 +171,34 @@ class _PromptPanelState extends State<PromptPanel> {
           ),
           const SizedBox(height: 24),
 
-          // App name & package row
+          // App name, icon, and package row
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Icon preview + import
+              _buildIconSection(appProv),
+              const SizedBox(width: 16),
+
+              // App Name & Package stacked
               Expanded(
-                child: _buildField(
-                  label: 'App Name',
-                  controller: _appNameController,
-                  hint: 'MyApp',
-                  icon: Icons.apps,
-                  onChanged: (v) => appProv.setAppName(v),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildField(
-                  label: 'Package Name',
-                  controller: _packageController,
-                  hint: 'com.example.myapp',
-                  icon: Icons.inventory_2,
-                  onChanged: (v) => appProv.setPackageName(v),
+                child: Column(
+                  children: [
+                    _buildField(
+                      label: 'App Name',
+                      controller: _appNameController,
+                      hint: 'MyApp',
+                      icon: Icons.apps,
+                      onChanged: _onAppNameChanged,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildField(
+                      label: 'Package Name',
+                      controller: _packageController,
+                      hint: 'com.app.myapp',
+                      icon: Icons.inventory_2,
+                      onChanged: (v) => appProv.setPackageName(v),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -108,10 +211,10 @@ class _PromptPanelState extends State<PromptPanel> {
 
           // Prompt input
           const Text(
-            'App Description',
+            'APP DESCRIPTION',
             style: TextStyle(
               color: AppColors.onSurfaceVariant,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.05,
             ),
@@ -151,7 +254,7 @@ class _PromptPanelState extends State<PromptPanel> {
           _buildAutoBuildRow(appProv),
           const SizedBox(height: 12),
 
-          // Generate button - "Machined Metal" gradient
+          // Generate button
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -205,6 +308,112 @@ class _PromptPanelState extends State<PromptPanel> {
     );
   }
 
+  // ── Icon section ──────────────────────────────────────────────────────────────
+
+  Widget _buildIconSection(AppProvider appProv) {
+    return Column(
+      children: [
+        Text(
+          'APP ICON',
+          style: const TextStyle(
+            color: AppColors.onSurfaceVariant,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.05,
+          ),
+        ),
+        const SizedBox(height: 6),
+        // Icon preview container
+        GestureDetector(
+          onTap: _pickIcon,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.zero,
+                border: Border.all(
+                  color: AppColors.outline.withValues(alpha: 0.3),
+                ),
+              ),
+              child: _iconLoading
+                  ? const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        ),
+                      ),
+                    )
+                  : _iconPreviewBytes != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.zero,
+                          child: Image.memory(
+                            _iconPreviewBytes!,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            gaplessPlayback: true,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.add_photo_alternate,
+                          color: AppColors.onSurfaceVariant,
+                          size: 28,
+                        ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        // Action buttons under icon
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Tooltip(
+              message: 'Import custom icon',
+              child: InkWell(
+                onTap: _pickIcon,
+                borderRadius: BorderRadius.zero,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  child: const Icon(Icons.upload, size: 14, color: AppColors.primary),
+                ),
+              ),
+            ),
+            if (appProv.customIconPath != null) ...[
+              const SizedBox(width: 4),
+              Tooltip(
+                message: 'Reset to auto-generated',
+                child: InkWell(
+                  onTap: _clearCustomIcon,
+                  borderRadius: BorderRadius.zero,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.zero,
+                    ),
+                    child: const Icon(Icons.close, size: 14, color: AppColors.error),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── Field builder ─────────────────────────────────────────────────────────────
+
   Widget _buildField({
     required String label,
     required TextEditingController controller,
@@ -244,12 +453,14 @@ class _PromptPanelState extends State<PromptPanel> {
     );
   }
 
+  // ── Output directory picker ───────────────────────────────────────────────────
+
   Widget _buildOutputDirPicker(AppProvider appProv) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Output Directory'.toUpperCase(),
+          'OUTPUT DIRECTORY',
           style: const TextStyle(
             color: AppColors.onSurfaceVariant,
             fontSize: 11,
@@ -310,6 +521,8 @@ class _PromptPanelState extends State<PromptPanel> {
       ],
     );
   }
+
+  // ── Auto-build row ────────────────────────────────────────────────────────────
 
   Widget _buildAutoBuildRow(AppProvider appProv) {
     const attempts = [1, 2, 3, 5];
@@ -409,6 +622,8 @@ class _PromptPanelState extends State<PromptPanel> {
     );
   }
 
+  // ── Generate ──────────────────────────────────────────────────────────────────
+
   void _generate(BuildContext context) {
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) {
@@ -440,6 +655,7 @@ class _PromptPanelState extends State<PromptPanel> {
           historyProvider: context.read<HistoryProvider>(),
           autoBuild: appProv.autoBuild,
           maxBuildAttempts: appProv.maxBuildAttempts,
+          customIconPath: appProv.customIconPath,
         );
   }
 }

@@ -13,6 +13,7 @@ class AppProvider extends ChangeNotifier {
   String _packageName = 'com.example.myapp';
   bool _autoBuild = true;
   int _maxBuildAttempts = 3;
+  String? _customIconPath; // Path to user-imported icon file (null = auto-generate)
 
   LLMConfig get llmConfig => _llmConfig;
   String get outputDirectory => _outputDirectory;
@@ -20,6 +21,7 @@ class AppProvider extends ChangeNotifier {
   String get packageName => _packageName;
   bool get autoBuild => _autoBuild;
   int get maxBuildAttempts => _maxBuildAttempts;
+  String? get customIconPath => _customIconPath;
 
   bool get isConfigured => _llmConfig.apiKey.isNotEmpty;
 
@@ -83,6 +85,11 @@ class AppProvider extends ChangeNotifier {
 
   void setPackageName(String name) {
     _packageName = name;
+    notifyListeners();
+  }
+
+  void setCustomIconPath(String? path) {
+    _customIconPath = path;
     notifyListeners();
   }
 

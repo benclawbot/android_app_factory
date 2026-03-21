@@ -10,6 +10,7 @@ import '../models/llm_config.dart';
 import '../providers/history_provider.dart';
 import '../services/build_fix_service.dart';
 import '../services/build_service.dart';
+import '../services/icon_generator.dart';
 import '../services/project_generator.dart';
 
 class GenerationProvider extends ChangeNotifier {
@@ -49,6 +50,7 @@ class GenerationProvider extends ChangeNotifier {
     HistoryProvider? historyProvider,
     bool autoBuild = true,
     int maxBuildAttempts = 3,
+    String? customIconPath,
   }) async {
     _state = GenerationState(
       status: GenerationStatus.generating,
@@ -83,6 +85,20 @@ class GenerationProvider extends ChangeNotifier {
       _addLog('❌ Error: $e');
       notifyListeners();
       return;
+    }
+
+    // Generate and write app icon to mipmap directories
+    try {
+      _addLog('🎨 Generating app icon...');
+      final iconMap = await IconGenerator.generateMipmapIcons(
+        appName: appName,
+        customIconPath: customIconPath,
+      );
+      await IconGenerator.writeIconsToDisk(outputDir, iconMap);
+      final source = customIconPath != null ? 'custom icon' : 'auto-generated from "$appName"';
+      _addLog('✅ App icon created ($source) — ${iconMap.length} densities');
+    } catch (e) {
+      _addLog('⚠️  Icon generation failed (using default): $e');
     }
 
     // Mark generation complete
