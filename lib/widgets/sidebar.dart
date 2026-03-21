@@ -30,16 +30,10 @@ class Sidebar extends StatelessWidget {
             onTap: () => onTabChanged(0),
           ),
           _SidebarIcon(
-            icon: Icons.folder_open,
-            label: 'Output',
-            isSelected: selectedIndex == 1,
-            onTap: () => onTabChanged(1),
-          ),
-          _SidebarIcon(
             icon: Icons.history,
             label: 'History',
-            isSelected: selectedIndex == 2,
-            onTap: () => onTabChanged(2),
+            isSelected: selectedIndex == 1,
+            onTap: () => onTabChanged(1),
           ),
           const Spacer(),
           _SidebarIcon(

@@ -276,6 +276,18 @@ class _AppCardState extends State<_AppCard> {
               // Action buttons
               Row(
                 children: [
+                  if (r.apkPath != null && File(r.apkPath!).existsSync()) ...[
+                    Expanded(
+                      child: _ActionButton(
+                        icon: Icons.android,
+                        label: 'APK',
+                        color: AppColors.success,
+                        onTap: () => _openApkFolder(r.apkPath!),
+                        tooltip: 'Open APK folder',
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
                   Expanded(
                     child: _ActionButton(
                       icon: Icons.launch,
@@ -311,6 +323,10 @@ class _AppCardState extends State<_AppCard> {
         ),
       ),
     );
+  }
+
+  void _openApkFolder(String apkPath) {
+    Process.start('explorer.exe', ['/select,', apkPath], mode: ProcessStartMode.detached);
   }
 
   void _openInStudio(AppRecord record) {

@@ -6,7 +6,6 @@ import '../providers/generation_provider.dart';
 import '../providers/history_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/console_panel.dart';
-import '../widgets/file_tree_panel.dart';
 import '../widgets/history_panel.dart';
 import '../widgets/prompt_panel.dart';
 import '../widgets/settings_dialog.dart';
@@ -44,8 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: switch (_selectedTab) {
                     0 => _buildGeneratorView(),
-                    1 => _buildOutputView(),
-                    2 => const HistoryPanel(),
+                    1 => const HistoryPanel(),
                     _ => _buildGeneratorView(),
                   },
                 ),
@@ -132,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Tooltip(
               message: 'View app history',
               child: InkWell(
-                onTap: () => setState(() => _selectedTab = 2),
+                onTap: () => setState(() => _selectedTab = 1),
                 borderRadius: BorderRadius.zero,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -196,10 +194,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     );
-  }
-
-  Widget _buildOutputView() {
-    return const FileTreePanel();
   }
 
   void _showSettings(BuildContext context) {
