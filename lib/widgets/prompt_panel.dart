@@ -6,10 +6,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:path/path.dart' as p;
 
+import '../models/llm_config.dart';
 import '../providers/app_provider.dart';
 import '../providers/generation_provider.dart';
 import '../providers/history_provider.dart';
 import '../services/icon_generator.dart';
+import '../services/llm_service.dart';
 import '../theme/app_theme.dart';
 
 class PromptPanel extends StatefulWidget {
@@ -23,30 +25,60 @@ class _PromptPanelState extends State<PromptPanel> {
   final _promptController = TextEditingController();
   final _appNameController = TextEditingController(text: 'MyApp');
   final _packageController = TextEditingController(text: 'com.app.myapp');
+  final _appNameFocusNode = FocusNode();
 
   // Icon preview state
   Uint8List? _iconPreviewBytes;
   bool _iconLoading = false;
 
+  // Description generation state
+  bool _descriptionLoading = false;
+
+  // Track previous app name to avoid redundant regeneration
+  String _lastGeneratedName = '';
+
   @override
   void initState() {
     super.initState();
-    // Generate initial icon preview
-    _regenerateIconPreview('MyApp');
+    // Generate initial icon
+    _regenerateIcon('MyApp');
+    // Listen for app name field losing focus
+    _appNameFocusNode.addListener(_onAppNameFocusChanged);
   }
 
   @override
   void dispose() {
+    _appNameFocusNode.removeListener(_onAppNameFocusChanged);
+    _appNameFocusNode.dispose();
     _promptController.dispose();
     _appNameController.dispose();
     _packageController.dispose();
     super.dispose();
   }
 
+  // ── Auto-generation triggers ──────────────────────────────────────────────
+
+  /// Called when the app name field gains or loses focus.
+  void _onAppNameFocusChanged() {
+    if (!_appNameFocusNode.hasFocus) {
+      // Focus lost — finalize the app name
+      final name = _appNameController.text.trim();
+      if (name.isEmpty || name == _lastGeneratedName) return;
+      _lastGeneratedName = name;
+
+      final appProv = context.read<AppProvider>();
+      // Auto-generate icon (unless custom icon is set)
+      if (appProv.customIconPath == null) {
+        _regenerateIcon(name);
+      }
+      // Auto-generate description (only if description is empty)
+      if (_promptController.text.trim().isEmpty && appProv.isConfigured) {
+        _generateDescription(name, appProv.llmConfig);
+      }
+    }
+  }
+
   /// Derives a clean package name from [appName].
-  ///
-  /// "Recipe Book" → "com.app.recipebook"
-  /// "My Cool App!" → "com.app.mycoolapp"
   String _derivePackageName(String appName) {
     final sanitized = appName
         .trim()
@@ -56,24 +88,21 @@ class _PromptPanelState extends State<PromptPanel> {
     return 'com.app.$sanitized';
   }
 
-  /// Called when the app name field changes — auto-updates package name and icon.
+  /// Called as user types in the app name field — only updates package name.
   void _onAppNameChanged(String value) {
     final appProv = context.read<AppProvider>();
     appProv.setAppName(value);
 
-    // Auto-update package name
+    // Auto-update package name in real-time
     final pkg = _derivePackageName(value);
     _packageController.text = pkg;
     appProv.setPackageName(pkg);
-
-    // Regenerate icon preview (only if not using a custom icon)
-    if (appProv.customIconPath == null) {
-      _regenerateIconPreview(value);
-    }
   }
 
-  /// Renders a fresh icon preview from the app name.
-  Future<void> _regenerateIconPreview(String appName, {String? customPath}) async {
+  // ── Icon generation ───────────────────────────────────────────────────────
+
+  /// Renders a fresh icon preview.
+  Future<void> _regenerateIcon(String appName, {String? customPath}) async {
     if (_iconLoading) return;
     setState(() => _iconLoading = true);
 
@@ -98,6 +127,15 @@ class _PromptPanelState extends State<PromptPanel> {
     }
   }
 
+  /// Manual regenerate button for icon — forces re-render.
+  void _onRegenerateIcon() {
+    final appProv = context.read<AppProvider>();
+    if (appProv.customIconPath != null) return; // custom icon set, no regen
+    final name = _appNameController.text.trim();
+    if (name.isEmpty) return;
+    _regenerateIcon(name);
+  }
+
   /// Lets the user pick a custom icon image file.
   Future<void> _pickIcon() async {
     final result = await FilePicker.platform.pickFiles(
@@ -113,15 +151,74 @@ class _PromptPanelState extends State<PromptPanel> {
 
     final appProv = context.read<AppProvider>();
     appProv.setCustomIconPath(filePath);
-    _regenerateIconPreview(_appNameController.text.trim(), customPath: filePath);
+    _regenerateIcon(_appNameController.text.trim(), customPath: filePath);
   }
 
   /// Clears the custom icon and reverts to auto-generated.
   void _clearCustomIcon() {
     final appProv = context.read<AppProvider>();
     appProv.setCustomIconPath(null);
-    _regenerateIconPreview(_appNameController.text.trim());
+    _regenerateIcon(_appNameController.text.trim());
   }
+
+  // ── Description generation via LLM ────────────────────────────────────────
+
+  /// Generates a rich app description from the app name using the configured LLM.
+  Future<void> _generateDescription(String appName, LLMConfig llmConfig) async {
+    if (_descriptionLoading) return;
+    setState(() => _descriptionLoading = true);
+
+    try {
+      final llm = LLMService(llmConfig);
+      try {
+        final prompt = '''
+Based on the app name "$appName", write a concise app description for an Android developer to build.
+
+Rules:
+- 2-4 sentences maximum
+- Describe what the app does, its main screens, and key features
+- Be specific about UI elements and user interactions
+- Do NOT include any greeting, preamble, or explanation — just the description
+- Do NOT use quotes around the response
+- Write as a direct instruction to the developer
+
+Example for "Recipe Book":
+A recipe book app with a home screen showing recipe cards with photos. Each card opens a detail page with ingredients, step-by-step instructions, and cook time. Include an add recipe screen with a form for title, ingredients, steps, and photo. Add a favorites screen showing bookmarked recipes with search functionality.
+''';
+
+        final response = await llm.generate(
+          prompt,
+          systemPrompt: 'You are a product designer. Output only the app description, nothing else.',
+        );
+
+        if (mounted) {
+          // Clean up the response — remove any quotes, trim whitespace
+          var cleaned = response.trim();
+          if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+            cleaned = cleaned.substring(1, cleaned.length - 1);
+          }
+          _promptController.text = cleaned;
+        }
+      } finally {
+        llm.dispose();
+      }
+    } catch (e) {
+      // Silently fail — user can write their own description
+    }
+
+    if (mounted) setState(() => _descriptionLoading = false);
+  }
+
+  /// Manual regenerate button for description.
+  void _onRegenerateDescription() {
+    final appProv = context.read<AppProvider>();
+    if (!appProv.isConfigured) return;
+    final name = _appNameController.text.trim();
+    if (name.isEmpty) return;
+    _generateDescription(name, appProv.llmConfig);
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +272,7 @@ class _PromptPanelState extends State<PromptPanel> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon preview + import
+              // Icon preview + controls
               _buildIconSection(appProv),
               const SizedBox(width: 16),
 
@@ -183,20 +280,14 @@ class _PromptPanelState extends State<PromptPanel> {
               Expanded(
                 child: Column(
                   children: [
-                    _buildField(
-                      label: 'App Name',
-                      controller: _appNameController,
-                      hint: 'MyApp',
-                      icon: Icons.apps,
-                      onChanged: _onAppNameChanged,
-                    ),
+                    _buildAppNameField(),
                     const SizedBox(height: 12),
                     _buildField(
                       label: 'Package Name',
                       controller: _packageController,
                       hint: 'com.app.myapp',
                       icon: Icons.inventory_2,
-                      onChanged: (v) => appProv.setPackageName(v),
+                      onChanged: (v) => context.read<AppProvider>().setPackageName(v),
                     ),
                   ],
                 ),
@@ -209,17 +300,75 @@ class _PromptPanelState extends State<PromptPanel> {
           _buildOutputDirPicker(appProv),
           const SizedBox(height: 16),
 
-          // Prompt input
-          const Text(
-            'APP DESCRIPTION',
-            style: TextStyle(
-              color: AppColors.onSurfaceVariant,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.05,
-            ),
+          // App description label + regenerate button
+          Row(
+            children: [
+              const Text(
+                'APP DESCRIPTION',
+                style: TextStyle(
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.05,
+                ),
+              ),
+              const Spacer(),
+              if (_descriptionLoading)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
+                )
+              else
+                Tooltip(
+                  message: appProv.isConfigured
+                      ? 'Generate description from app name'
+                      : 'Configure API key to auto-generate',
+                  child: InkWell(
+                    onTap: appProv.isConfigured ? _onRegenerateDescription : null,
+                    borderRadius: BorderRadius.zero,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: appProv.isConfigured
+                            ? AppColors.primary.withValues(alpha: 0.1)
+                            : AppColors.surfaceContainer,
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.auto_awesome,
+                            size: 12,
+                            color: appProv.isConfigured
+                                ? AppColors.primary
+                                : AppColors.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Generate',
+                            style: TextStyle(
+                              color: appProv.isConfigured
+                                  ? AppColors.primary
+                                  : AppColors.onSurfaceVariant,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 8),
+
+          // Description text area
           Expanded(
             child: Container(
               decoration: const BoxDecoration(
@@ -237,13 +386,15 @@ class _PromptPanelState extends State<PromptPanel> {
                 ),
                 decoration: const InputDecoration(
                   hintText:
+                      'Enter the app name above and tab out to auto-generate a description, '
+                      'or write your own.\n\n'
                       'Example: A recipe book app with a home screen showing recipe cards, '
                       'a detail page for each recipe with ingredients and steps, '
                       'an add recipe screen with a form, and a favorites screen. '
                       'Use a warm color palette with orange accents...',
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(16),
-                  hintMaxLines: 5,
+                  hintMaxLines: 6,
                 ),
               ),
             ),
@@ -308,14 +459,16 @@ class _PromptPanelState extends State<PromptPanel> {
     );
   }
 
-  // ── Icon section ──────────────────────────────────────────────────────────────
+  // ── Icon section ──────────────────────────────────────────────────────────
 
   Widget _buildIconSection(AppProvider appProv) {
+    final hasCustom = appProv.customIconPath != null;
+
     return Column(
       children: [
-        Text(
+        const Text(
           'APP ICON',
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.onSurfaceVariant,
             fontSize: 11,
             fontWeight: FontWeight.w600,
@@ -323,7 +476,7 @@ class _PromptPanelState extends State<PromptPanel> {
           ),
         ),
         const SizedBox(height: 6),
-        // Icon preview container
+        // Icon preview
         GestureDetector(
           onTap: _pickIcon,
           child: MouseRegion(
@@ -350,15 +503,12 @@ class _PromptPanelState extends State<PromptPanel> {
                       ),
                     )
                   : _iconPreviewBytes != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.zero,
-                          child: Image.memory(
-                            _iconPreviewBytes!,
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            gaplessPlayback: true,
-                          ),
+                      ? Image.memory(
+                          _iconPreviewBytes!,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          gaplessPlayback: true,
                         )
                       : const Icon(
                           Icons.add_photo_alternate,
@@ -369,10 +519,29 @@ class _PromptPanelState extends State<PromptPanel> {
           ),
         ),
         const SizedBox(height: 6),
-        // Action buttons under icon
+        // Action buttons
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Regenerate button (only when not using custom icon)
+            if (!hasCustom)
+              Tooltip(
+                message: 'Regenerate icon',
+                child: InkWell(
+                  onTap: _onRegenerateIcon,
+                  borderRadius: BorderRadius.zero,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.zero,
+                    ),
+                    child: const Icon(Icons.refresh, size: 14, color: AppColors.primary),
+                  ),
+                ),
+              ),
+            if (!hasCustom) const SizedBox(width: 4),
+            // Import button
             Tooltip(
               message: 'Import custom icon',
               child: InkWell(
@@ -388,7 +557,8 @@ class _PromptPanelState extends State<PromptPanel> {
                 ),
               ),
             ),
-            if (appProv.customIconPath != null) ...[
+            // Clear custom icon
+            if (hasCustom) ...[
               const SizedBox(width: 4),
               Tooltip(
                 message: 'Reset to auto-generated',
@@ -412,7 +582,47 @@ class _PromptPanelState extends State<PromptPanel> {
     );
   }
 
-  // ── Field builder ─────────────────────────────────────────────────────────────
+  // ── App name field (with focus node) ──────────────────────────────────────
+
+  Widget _buildAppNameField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'APP NAME',
+          style: TextStyle(
+            color: AppColors.onSurfaceVariant,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.05,
+          ),
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          height: 44,
+          child: TextField(
+            controller: _appNameController,
+            focusNode: _appNameFocusNode,
+            style: const TextStyle(color: AppColors.onSurface, fontSize: 13),
+            onChanged: _onAppNameChanged,
+            onSubmitted: (_) {
+              // Also trigger on Enter key
+              _appNameFocusNode.unfocus();
+            },
+            decoration: const InputDecoration(
+              hintText: 'MyApp',
+              prefixIcon: Icon(Icons.apps, size: 18, color: AppColors.onSurfaceVariant),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              fillColor: AppColors.surfaceContainerLowest,
+              filled: true,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Generic field builder ─────────────────────────────────────────────────
 
   Widget _buildField({
     required String label,
@@ -453,15 +663,15 @@ class _PromptPanelState extends State<PromptPanel> {
     );
   }
 
-  // ── Output directory picker ───────────────────────────────────────────────────
+  // ── Output directory picker ───────────────────────────────────────────────
 
   Widget _buildOutputDirPicker(AppProvider appProv) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'OUTPUT DIRECTORY',
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.onSurfaceVariant,
             fontSize: 11,
             fontWeight: FontWeight.w600,
@@ -500,8 +710,8 @@ class _PromptPanelState extends State<PromptPanel> {
                 child: ElevatedButton.icon(
                   onPressed: () async {
                     final dir = await FilePicker.platform.getDirectoryPath();
-                    if (dir != null) {
-                      appProv.setOutputDirectory(dir);
+                    if (dir != null && mounted) {
+                      context.read<AppProvider>().setOutputDirectory(dir);
                     }
                   },
                   icon: const Icon(Icons.folder_open, size: 18),
@@ -522,7 +732,7 @@ class _PromptPanelState extends State<PromptPanel> {
     );
   }
 
-  // ── Auto-build row ────────────────────────────────────────────────────────────
+  // ── Auto-build row ────────────────────────────────────────────────────────
 
   Widget _buildAutoBuildRow(AppProvider appProv) {
     const attempts = [1, 2, 3, 5];
@@ -622,7 +832,7 @@ class _PromptPanelState extends State<PromptPanel> {
     );
   }
 
-  // ── Generate ──────────────────────────────────────────────────────────────────
+  // ── Generate ──────────────────────────────────────────────────────────────
 
   void _generate(BuildContext context) {
     final prompt = _promptController.text.trim();
