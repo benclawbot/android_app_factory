@@ -175,6 +175,12 @@ class GenerationProvider extends ChangeNotifier {
           progress: 1.0,
         );
         notifyListeners();
+
+        // Open APK folder in Windows Explorer
+        if (result.apkPath != null) {
+          _openFolder(result.apkPath!);
+        }
+
         return result;
       }
 
@@ -272,5 +278,25 @@ class GenerationProvider extends ChangeNotifier {
     final rnd =
         Random.secure().nextInt(0xFFFFFF).toRadixString(16).padLeft(6, '0');
     return '$ts-$rnd';
+  }
+
+  /// Opens the folder containing [apkPath] in Windows Explorer,
+  /// with the APK file selected.
+  Future<void> _openFolder(String apkPath) async {
+    try {
+      // Use cmd /c to run explorer with proper Windows argument handling
+      // /select, tells explorer to open and select the specified file
+      final result = await Process.run(
+        'cmd.exe',
+        ['/c', 'start', 'explorer', '/select,', apkPath],
+      );
+      if (result.exitCode == 0) {
+        _addLog('📂 Opened APK folder: $apkPath');
+      } else {
+        _addLog('⚠️  Explorer returned exit code: ${result.exitCode}');
+      }
+    } catch (e) {
+      _addLog('⚠️  Could not open APK folder: $e');
+    }
   }
 }
