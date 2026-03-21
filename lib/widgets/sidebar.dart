@@ -38,6 +38,12 @@ class Sidebar extends StatelessWidget {
             isSelected: selectedIndex == 1,
             onTap: () => onTabChanged(1),
           ),
+          _SidebarIcon(
+            icon: Icons.history,
+            label: 'History',
+            isSelected: selectedIndex == 2,
+            onTap: () => onTabChanged(2),
+          ),
           const Spacer(),
           _SidebarIcon(
             icon: Icons.settings,

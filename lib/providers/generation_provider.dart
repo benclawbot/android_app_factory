@@ -1,6 +1,10 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import '../models/app_record.dart';
 import '../models/generation_state.dart';
 import '../models/llm_config.dart';
+import '../providers/history_provider.dart';
 import '../services/project_generator.dart';
 
 class GenerationProvider extends ChangeNotifier {
@@ -34,6 +38,7 @@ class GenerationProvider extends ChangeNotifier {
     required String appName,
     required String packageName,
     required LLMConfig llmConfig,
+    HistoryProvider? historyProvider,
   }) async {
     _state = const GenerationState(
       status: GenerationStatus.generating,
@@ -65,6 +70,22 @@ class GenerationProvider extends ChangeNotifier {
         progress: 1.0,
       );
       notifyListeners();
+
+      // Save to history
+      if (historyProvider != null) {
+        final now = DateTime.now();
+        final record = AppRecord(
+          id: _generateId(),
+          appName: appName,
+          packageName: packageName,
+          outputPath: outputDir,
+          originalPrompt: prompt,
+          files: files,
+          createdAt: now,
+          updatedAt: now,
+        );
+        await historyProvider.addRecord(record);
+      }
     } catch (e) {
       _state = _state.copyWith(
         status: GenerationStatus.error,
@@ -74,5 +95,15 @@ class GenerationProvider extends ChangeNotifier {
       _addLog('❌ Error: $e');
       notifyListeners();
     }
+  }
+
+  /// Simple unique id: timestamp + 6 random hex chars.
+  String _generateId() {
+    final ts = DateTime.now().millisecondsSinceEpoch.toRadixString(16);
+    final rnd = Random.secure()
+        .nextInt(0xFFFFFF)
+        .toRadixString(16)
+        .padLeft(6, '0');
+    return '$ts-$rnd';
   }
 }

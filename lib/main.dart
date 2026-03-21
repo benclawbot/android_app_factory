@@ -4,6 +4,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'providers/app_provider.dart';
 import 'providers/generation_provider.dart';
+import 'providers/history_provider.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -38,6 +39,7 @@ class AndroidAppFactory extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AppProvider()),
         ChangeNotifierProvider(create: (_) => GenerationProvider()),
+        ChangeNotifierProvider(create: (_) => HistoryProvider()),
       ],
       child: MaterialApp(
         title: 'Android App Factory',

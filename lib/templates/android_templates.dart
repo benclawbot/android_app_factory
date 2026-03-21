@@ -24,12 +24,12 @@ plugins {
 
 android {
     namespace = "$packageName"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "$packageName"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
     }
@@ -43,16 +43,13 @@ android {
             )
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         compose = true
     }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
@@ -86,6 +83,11 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
+}
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -108,7 +110,7 @@ android.nonTransitiveRClass=true
   String get gradleWrapperProperties => '''
 distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
-distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14-bin.zip
+distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.4-bin.zip
 networkTimeout=10000
 validateDistributionUrl=true
 zipStoreBase=GRADLE_USER_HOME
@@ -117,14 +119,14 @@ zipStorePath=wrapper/dists
 
   String get libsVersionsToml => '''
 [versions]
-agp = "8.7.3"
-kotlin = "2.1.0"
-coreKtx = "1.15.0"
-lifecycleRuntimeKtx = "2.8.7"
-activityCompose = "1.9.3"
-composeBom = "2024.12.01"
-navigationCompose = "2.8.5"
-lifecycleViewmodelCompose = "2.8.7"
+agp = "8.13.2"
+kotlin = "2.3.0"
+coreKtx = "1.18.0"
+lifecycleRuntimeKtx = "2.10.0"
+activityCompose = "1.13.0"
+composeBom = "2025.11.00"
+navigationCompose = "2.9.7"
+lifecycleViewmodelCompose = "2.10.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

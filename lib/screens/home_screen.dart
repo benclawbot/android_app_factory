@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../providers/app_provider.dart';
 import '../providers/generation_provider.dart';
+import '../providers/history_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/console_panel.dart';
 import '../widgets/file_tree_panel.dart';
+import '../widgets/history_panel.dart';
 import '../widgets/prompt_panel.dart';
 import '../widgets/settings_dialog.dart';
 import '../widgets/sidebar.dart';
@@ -40,9 +42,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Divider(height: 1, color: AppColors.border),
                 // Body
                 Expanded(
-                  child: _selectedTab == 0
-                      ? _buildGeneratorView()
-                      : _buildOutputView(),
+                  child: switch (_selectedTab) {
+                    0 => _buildGeneratorView(),
+                    1 => _buildOutputView(),
+                    2 => const HistoryPanel(),
+                    _ => _buildGeneratorView(),
+                  },
                 ),
               ],
             ),
@@ -55,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTopBar(BuildContext context) {
     final appProv = context.watch<AppProvider>();
     final genProv = context.watch<GenerationProvider>();
+    final histProv = context.watch<HistoryProvider>();
 
     return Container(
       height: 60,
@@ -120,6 +126,41 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+          if (!histProv.isEmpty) ...[
+            const SizedBox(width: 12),
+            Tooltip(
+              message: 'View app history',
+              child: InkWell(
+                onTap: () => setState(() => _selectedTab = 2),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.purple.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.purple.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.history,
+                          size: 14, color: AppColors.purple),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${histProv.records.length} app${histProv.records.length == 1 ? '' : 's'}',
+                        style: const TextStyle(
+                          color: AppColors.purple,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
           if (genProv.isGenerating) ...[
             const SizedBox(width: 16),
             SizedBox(

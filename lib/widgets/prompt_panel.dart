@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 
 import '../providers/app_provider.dart';
 import '../providers/generation_provider.dart';
+import '../providers/history_provider.dart';
 import '../theme/app_theme.dart';
 
 class PromptPanel extends StatefulWidget {
@@ -335,6 +336,7 @@ class _PromptPanelState extends State<PromptPanel> {
           appName: _appNameController.text.trim(),
           packageName: _packageController.text.trim(),
           llmConfig: appProv.llmConfig,
+          historyProvider: context.read<HistoryProvider>(),
         );
   }
 }
