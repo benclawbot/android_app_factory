@@ -35,8 +35,6 @@ class _UpdateDialogState extends State<UpdateDialog> {
     super.dispose();
   }
 
-  // ── Actions ──────────────────────────────────────────────────────────────────
-
   Future<void> _runUpdate() async {
     final prompt = _updateController.text.trim();
     if (prompt.isEmpty) return;
@@ -63,9 +61,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
           setState(() => _logs.add(log));
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_logScrollController.hasClients) {
-              _logScrollController.jumpTo(
-                _logScrollController.position.maxScrollExtent,
-              );
+              _logScrollController.jumpTo(_logScrollController.position.maxScrollExtent);
             }
           });
         },
@@ -95,18 +91,17 @@ class _UpdateDialogState extends State<UpdateDialog> {
       setState(() {
         _isUpdating = false;
         _errorMessage = e.toString();
-        _logs.add('❌ Error: $e');
+        _logs.add('Error: $e');
       });
     }
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.95),
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 900, maxHeight: 680),
         child: Padding(
@@ -131,13 +126,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
       children: [
         Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.accent, AppColors.purple],
-            ),
-            borderRadius: BorderRadius.circular(12),
+          decoration: const BoxDecoration(
+            gradient: PrimaryGradient.metalSheen,
+            borderRadius: BorderRadius.zero,
           ),
-          child: const Icon(Icons.edit_note, color: Colors.white, size: 22),
+          child: const Icon(Icons.edit_note, color: AppColors.onPrimary, size: 22),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -147,15 +140,15 @@ class _UpdateDialogState extends State<UpdateDialog> {
               Text(
                 'Update: ${widget.record.appName}',
                 style: const TextStyle(
-                  color: AppColors.textPrimary,
+                  color: AppColors.onSurface,
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 widget.record.packageName,
                 style: const TextStyle(
-                  color: AppColors.textMuted,
+                  color: AppColors.onSurfaceVariant,
                   fontSize: 12,
                 ),
               ),
@@ -164,7 +157,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
         ),
         if (!_isUpdating)
           IconButton(
-            icon: const Icon(Icons.close, color: AppColors.textMuted),
+            icon: const Icon(Icons.close, color: AppColors.onSurfaceVariant),
             onPressed: () => Navigator.of(context).pop(),
           ),
       ],
@@ -175,44 +168,36 @@ class _UpdateDialogState extends State<UpdateDialog> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Left: file tree
-        SizedBox(
-          width: 220,
-          child: _buildFileTree(),
-        ),
+        SizedBox(width: 220, child: _buildFileTree()),
         const SizedBox(width: 16),
-        const VerticalDivider(color: AppColors.border, width: 1),
+        Container(width: 1, color: AppColors.outline.withValues(alpha: 0.15)),
         const SizedBox(width: 16),
-        // Right: update form / progress
         Expanded(child: _isUpdating || _done ? _buildProgress() : _buildForm()),
       ],
     );
   }
 
   Widget _buildFileTree() {
-    final ktFiles = widget.record.files.keys
-        .where((k) => k.endsWith('.kt'))
-        .toList()
-      ..sort();
+    final ktFiles = widget.record.files.keys.where((k) => k.endsWith('.kt')).toList()..sort();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Current Files',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12,
+        Text(
+          'Current Files'.toUpperCase(),
+          style: const TextStyle(
+            color: AppColors.onSurfaceVariant,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
+            letterSpacing: 0.05,
           ),
         ),
         const SizedBox(height: 8),
         Expanded(
           child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.zero,
             ),
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -224,30 +209,17 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 return InkWell(
                   onTap: () => setState(() => _selectedFile = path),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    color: isSelected
-                        ? AppColors.accent.withValues(alpha: 0.15)
-                        : Colors.transparent,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.code,
-                          size: 14,
-                          color: isSelected
-                              ? AppColors.accent
-                              : AppColors.purple.withValues(alpha: 0.7),
-                        ),
+                        Icon(Icons.code, size: 14, color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             name,
                             style: TextStyle(
-                              color: isSelected
-                                  ? AppColors.accent
-                                  : AppColors.textSecondary,
+                              color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
                               fontSize: 12,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -264,7 +236,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
         const SizedBox(height: 8),
         Text(
           '${ktFiles.length} Kotlin file${ktFiles.length == 1 ? '' : 's'}',
-          style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+          style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11),
         ),
       ],
     );
@@ -274,21 +246,21 @@ class _UpdateDialogState extends State<UpdateDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'What would you like to change?',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13,
+        Text(
+          'What would you like to change?'.toUpperCase(),
+          style: const TextStyle(
+            color: AppColors.onSurfaceVariant,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
+            letterSpacing: 0.05,
           ),
         ),
         const SizedBox(height: 8),
         Expanded(
           child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.zero,
             ),
             child: TextField(
               controller: _updateController,
@@ -296,18 +268,18 @@ class _UpdateDialogState extends State<UpdateDialog> {
               expands: true,
               textAlignVertical: TextAlignVertical.top,
               style: const TextStyle(
-                color: AppColors.textPrimary,
+                color: AppColors.onSurface,
                 fontSize: 13,
                 height: 1.6,
               ),
               decoration: const InputDecoration(
                 hintText:
                     'Examples:\n'
-                    '• Add a high scores screen with a leaderboard\n'
-                    '• Change the color theme to dark blue\n'
-                    '• Add a settings screen with sound toggles\n'
-                    '• Replace the list view with a grid layout\n'
-                    '• Add share functionality to the detail screen',
+                    '- Add a high scores screen with a leaderboard\n'
+                    '- Change the color theme to dark blue\n'
+                    '- Add a settings screen with sound toggles\n'
+                    '- Replace the list view with a grid layout\n'
+                    '- Add share functionality to the detail screen',
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.all(16),
                 hintMaxLines: 8,
@@ -322,22 +294,15 @@ class _UpdateDialogState extends State<UpdateDialog> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.error.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              color: AppColors.error.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.zero,
               border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.error_outline,
-                    color: AppColors.error, size: 16),
+                const Icon(Icons.error_outline, color: AppColors.error, size: 16),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(
-                        color: AppColors.error, fontSize: 12),
-                  ),
-                ),
+                Expanded(child: Text(_errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 12))),
               ],
             ),
           ),
@@ -349,20 +314,20 @@ class _UpdateDialogState extends State<UpdateDialog> {
   Widget _buildModeSelector() {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.zero,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Update scope',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
+          Text(
+            'Update scope'.toUpperCase(),
+            style: const TextStyle(
+              color: AppColors.onSurfaceVariant,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
+              letterSpacing: 0.05,
             ),
           ),
           const SizedBox(height: 6),
@@ -398,8 +363,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 height: 18,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(AppColors.accent),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
               )
             else if (_done)
@@ -408,9 +372,9 @@ class _UpdateDialogState extends State<UpdateDialog> {
               const Icon(Icons.error, color: AppColors.error, size: 18),
             const SizedBox(width: 10),
             Text(
-              _done ? 'Update complete!' : 'Updating…',
+              _done ? 'Update complete!' : 'Updating...',
               style: TextStyle(
-                color: _done ? AppColors.success : AppColors.textPrimary,
+                color: _done ? AppColors.success : AppColors.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -420,35 +384,30 @@ class _UpdateDialogState extends State<UpdateDialog> {
         const SizedBox(height: 12),
         LinearProgressIndicator(
           value: _progress,
-          backgroundColor: AppColors.card,
-          valueColor:
-              const AlwaysStoppedAnimation<Color>(AppColors.accent),
-          minHeight: 4,
-          borderRadius: BorderRadius.circular(2),
+          backgroundColor: AppColors.surfaceContainer,
+          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+          minHeight: 2,
         ),
         const SizedBox(height: 14),
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.bg,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.zero,
             ),
             child: ListView.builder(
               controller: _logScrollController,
               itemCount: _logs.length,
               itemBuilder: (_, i) {
                 final log = _logs[i];
-                final color = log.startsWith('❌')
+                final color = log.startsWith('Error') || log.startsWith('e:')
                     ? AppColors.error
-                    : log.startsWith('🎉') || log.startsWith('✅')
+                    : log.contains('complete') || log.contains('success')
                         ? AppColors.success
-                        : log.startsWith('⚡') || log.startsWith('🔄')
-                            ? AppColors.accent
-                            : log.startsWith('  📄')
-                                ? AppColors.textMuted
-                                : AppColors.textSecondary;
+                        : log.startsWith('  File')
+                            ? AppColors.onSurfaceVariant
+                            : AppColors.onSurfaceVariant;
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Text(
@@ -456,7 +415,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
                     style: TextStyle(
                       color: color,
                       fontSize: 12,
-                      fontFamily: 'monospace',
+                      fontFamily: 'Consolas',
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 );
@@ -480,39 +440,33 @@ class _UpdateDialogState extends State<UpdateDialog> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
         ],
       );
     }
 
-    if (_isUpdating) {
-      return const SizedBox.shrink();
-    }
+    if (_isUpdating) return const SizedBox.shrink();
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel',
-              style: TextStyle(color: AppColors.textMuted)),
+          child: const Text('Cancel', style: TextStyle(color: AppColors.onSurfaceVariant)),
         ),
         ElevatedButton.icon(
           onPressed: _updateController.text.isEmpty ? null : _runUpdate,
           icon: const Icon(Icons.auto_awesome, size: 18),
           label: const Text('Update App with AI'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.accent,
-            foregroundColor: AppColors.bg,
-            disabledBackgroundColor: AppColors.card,
-            disabledForegroundColor: AppColors.textMuted,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            backgroundColor: AppColors.primary,
+            foregroundColor: AppColors.onPrimary,
+            disabledBackgroundColor: AppColors.surfaceContainer,
+            disabledForegroundColor: AppColors.onSurfaceVariant,
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
         ),
@@ -520,8 +474,6 @@ class _UpdateDialogState extends State<UpdateDialog> {
     );
   }
 }
-
-// ── Helper widget ─────────────────────────────────────────────────────────────
 
 class _ModeOption extends StatelessWidget {
   final UpdateMode value;
@@ -543,7 +495,7 @@ class _ModeOption extends StatelessWidget {
     final selected = value == groupValue;
     return InkWell(
       onTap: () => onChanged(value),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.zero,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
         child: Row(
@@ -558,7 +510,7 @@ class _ModeOption extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: selected ? AppColors.accent : AppColors.textMuted,
+                      color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
                       width: 2,
                     ),
                   ),
@@ -569,7 +521,7 @@ class _ModeOption extends StatelessWidget {
                             height: 8,
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppColors.accent,
+                              color: AppColors.primary,
                             ),
                           ),
                         )
@@ -584,9 +536,7 @@ class _ModeOption extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: selected
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
+                    color: selected ? AppColors.onSurface : AppColors.onSurfaceVariant,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -594,7 +544,7 @@ class _ModeOption extends StatelessWidget {
                 Text(
                   description,
                   style: const TextStyle(
-                    color: AppColors.textMuted,
+                    color: AppColors.onSurfaceVariant,
                     fontSize: 11,
                   ),
                 ),

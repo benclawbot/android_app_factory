@@ -34,176 +34,173 @@ class _PromptPanelState extends State<PromptPanel> {
     final genProv = context.watch<GenerationProvider>();
 
     return Container(
-      color: AppColors.bg,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.accent, AppColors.purple],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+      color: AppColors.surface,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  gradient: PrimaryGradient.metalSheen,
+                  borderRadius: BorderRadius.zero,
                 ),
-                const SizedBox(width: 12),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Describe Your App',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Tell the AI what Android app you want to build',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // App name & package row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildField(
-                    label: 'App Name',
-                    controller: _appNameController,
-                    hint: 'MyApp',
-                    icon: Icons.apps,
-                    onChanged: (v) => appProv.setAppName(v),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildField(
-                    label: 'Package Name',
-                    controller: _packageController,
-                    hint: 'com.example.myapp',
-                    icon: Icons.inventory_2,
-                    onChanged: (v) => appProv.setPackageName(v),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Output directory picker
-            _buildOutputDirPicker(appProv),
-            const SizedBox(height: 16),
-
-            // Prompt input
-            const Text(
-              'App Description',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+                child: const Icon(Icons.auto_awesome, color: AppColors.onPrimary, size: 20),
               ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Describe Your App',
+                    style: TextStyle(
+                      color: AppColors.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.01,
+                    ),
+                  ),
+                  Text(
+                    'Tell the AI what Android app you want to build',
+                    style: TextStyle(
+                      color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // App name & package row
+          Row(
+            children: [
+              Expanded(
+                child: _buildField(
+                  label: 'App Name',
+                  controller: _appNameController,
+                  hint: 'MyApp',
+                  icon: Icons.apps,
+                  onChanged: (v) => appProv.setAppName(v),
                 ),
-                child: TextField(
-                  controller: _promptController,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                    height: 1.6,
-                  ),
-                  decoration: const InputDecoration(
-                    hintText:
-                        'Example: A recipe book app with a home screen showing recipe cards, '
-                        'a detail page for each recipe with ingredients and steps, '
-                        'an add recipe screen with a form, and a favorites screen. '
-                        'Use a warm color palette with orange accents...',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(16),
-                    hintMaxLines: 5,
-                  ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildField(
+                  label: 'Package Name',
+                  controller: _packageController,
+                  hint: 'com.example.myapp',
+                  icon: Icons.inventory_2,
+                  onChanged: (v) => appProv.setPackageName(v),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Output directory picker
+          _buildOutputDirPicker(appProv),
+          const SizedBox(height: 16),
+
+          // Prompt input
+          const Text(
+            'App Description',
+            style: TextStyle(
+              color: AppColors.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.05,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceContainerLowest,
+              ),
+              child: TextField(
+                controller: _promptController,
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                style: const TextStyle(
+                  color: AppColors.onSurface,
+                  fontSize: 14,
+                  height: 1.6,
+                ),
+                decoration: const InputDecoration(
+                  hintText:
+                      'Example: A recipe book app with a home screen showing recipe cards, '
+                      'a detail page for each recipe with ingredients and steps, '
+                      'an add recipe screen with a form, and a favorites screen. '
+                      'Use a warm color palette with orange accents...',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(16),
+                  hintMaxLines: 5,
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
 
-            // Auto-build row
-            _buildAutoBuildRow(appProv),
-            const SizedBox(height: 12),
+          // Auto-build row
+          _buildAutoBuildRow(appProv),
+          const SizedBox(height: 12),
 
-            // Generate button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: genProv.isGenerating || !appProv.isConfigured
-                    ? null
-                    : () => _generate(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: AppColors.bg,
-                  disabledBackgroundColor: AppColors.card,
-                  disabledForegroundColor: AppColors.textMuted,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+          // Generate button - "Machined Metal" gradient
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: genProv.isGenerating || !appProv.isConfigured
+                  ? null
+                  : () => _generate(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
+                disabledBackgroundColor: AppColors.surfaceContainer,
+                disabledForegroundColor: AppColors.onSurfaceVariant,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
                 ),
-                child: genProv.isGenerating
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.bg),
-                            ),
+                elevation: 0,
+              ),
+              child: genProv.isGenerating
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(AppColors.onPrimary),
                           ),
-                          const SizedBox(width: 12),
-                          const Text('Generating...'),
-                        ],
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.rocket_launch, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            appProv.isConfigured
-                                ? 'Generate Android App'
-                                : 'Configure API Key First',
-                          ),
-                        ],
-                      ),
-              ),
+                        ),
+                        SizedBox(width: 12),
+                        Text('Generating...'),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.rocket_launch, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          appProv.isConfigured
+                              ? 'Generate Android App'
+                              : 'Configure API Key First',
+                        ),
+                      ],
+                    ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -219,11 +216,12 @@ class _PromptPanelState extends State<PromptPanel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
+          label.toUpperCase(),
           style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
+            color: AppColors.onSurfaceVariant,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.05,
           ),
         ),
         const SizedBox(height: 6),
@@ -231,12 +229,14 @@ class _PromptPanelState extends State<PromptPanel> {
           height: 44,
           child: TextField(
             controller: controller,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+            style: const TextStyle(color: AppColors.onSurface, fontSize: 13),
             onChanged: onChanged,
             decoration: InputDecoration(
               hintText: hint,
-              prefixIcon: Icon(icon, size: 18, color: AppColors.textMuted),
+              prefixIcon: Icon(icon, size: 18, color: AppColors.onSurfaceVariant),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              fillColor: AppColors.surfaceContainerLowest,
+              filled: true,
             ),
           ),
         ),
@@ -248,12 +248,13 @@ class _PromptPanelState extends State<PromptPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Output Directory',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
+        Text(
+          'Output Directory'.toUpperCase(),
+          style: const TextStyle(
+            color: AppColors.onSurfaceVariant,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.05,
           ),
         ),
         const SizedBox(height: 6),
@@ -264,10 +265,8 @@ class _PromptPanelState extends State<PromptPanel> {
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
+                  decoration: const BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
                   ),
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -276,8 +275,8 @@ class _PromptPanelState extends State<PromptPanel> {
                         : appProv.outputDirectory,
                     style: TextStyle(
                       color: appProv.outputDirectory.isEmpty
-                          ? AppColors.textMuted
-                          : AppColors.textPrimary,
+                          ? AppColors.onSurfaceVariant
+                          : AppColors.onSurface,
                       fontSize: 13,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -297,10 +296,10 @@ class _PromptPanelState extends State<PromptPanel> {
                   icon: const Icon(Icons.folder_open, size: 18),
                   label: const Text('Browse'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.card,
-                    foregroundColor: AppColors.textPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    backgroundColor: AppColors.surfaceContainerHigh,
+                    foregroundColor: AppColors.onSurface,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero,
                     ),
                   ),
                 ),
@@ -317,27 +316,23 @@ class _PromptPanelState extends State<PromptPanel> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: appProv.autoBuild
-              ? AppColors.accent.withValues(alpha: 0.4)
-              : AppColors.border,
-        ),
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.zero,
+        border: appProv.autoBuild
+            ? Border.all(color: AppColors.primary.withValues(alpha: 0.4))
+            : null,
       ),
       child: Row(
         children: [
-          // Checkbox
           SizedBox(
             width: 20,
             height: 20,
             child: Checkbox(
               value: appProv.autoBuild,
               onChanged: (v) => appProv.setAutoBuild(v ?? true),
-              activeColor: AppColors.accent,
-              side: const BorderSide(color: AppColors.textMuted, width: 1.5),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4)),
+              activeColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.onSurfaceVariant, width: 1.5),
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             ),
           ),
           const SizedBox(width: 10),
@@ -348,7 +343,7 @@ class _PromptPanelState extends State<PromptPanel> {
                 const Text(
                   'Build APK & auto-fix errors',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: AppColors.onSurface,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -358,7 +353,7 @@ class _PromptPanelState extends State<PromptPanel> {
                       ? 'Compile with Gradle after generation, fix errors with AI'
                       : 'Skip build — generate code only',
                   style: const TextStyle(
-                    color: AppColors.textMuted,
+                    color: AppColors.onSurfaceVariant,
                     fontSize: 11,
                   ),
                 ),
@@ -372,15 +367,13 @@ class _PromptPanelState extends State<PromptPanel> {
               children: [
                 const Text(
                   'Max fix attempts',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 10),
+                  style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 10),
                 ),
                 const SizedBox(height: 2),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
+                  decoration: const BoxDecoration(
+                    color: AppColors.surfaceContainerHigh,
                   ),
                   child: DropdownButton<int>(
                     value: attempts.contains(appProv.maxBuildAttempts)
@@ -392,7 +385,7 @@ class _PromptPanelState extends State<PromptPanel> {
                               child: Text(
                                 '$n',
                                 style: const TextStyle(
-                                  color: AppColors.textPrimary,
+                                  color: AppColors.onSurface,
                                   fontSize: 13,
                                 ),
                               ),
@@ -401,11 +394,11 @@ class _PromptPanelState extends State<PromptPanel> {
                     onChanged: (v) {
                       if (v != null) appProv.setMaxBuildAttempts(v);
                     },
-                    dropdownColor: AppColors.card,
+                    dropdownColor: AppColors.surfaceContainerHighest,
                     underline: const SizedBox.shrink(),
                     isDense: true,
                     icon: const Icon(Icons.expand_more,
-                        size: 16, color: AppColors.textMuted),
+                        size: 16, color: AppColors.onSurfaceVariant),
                   ),
                 ),
               ],

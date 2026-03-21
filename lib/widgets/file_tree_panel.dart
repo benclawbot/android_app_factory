@@ -31,7 +31,9 @@ class _FileTreePanelState extends State<FileTreePanel> {
         // File tree (left)
         Container(
           width: 280,
-          color: AppColors.surface,
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceContainerLow,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -39,33 +41,32 @@ class _FileTreePanelState extends State<FileTreePanel> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: AppColors.border),
-                  ),
+                  color: AppColors.surfaceContainerLow,
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.account_tree, size: 16, color: AppColors.accent),
+                    const Icon(Icons.account_tree, size: 16, color: AppColors.primary),
                     const SizedBox(width: 8),
                     const Text(
                       'Generated Files',
                       style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 13,
+                        color: AppColors.onSurfaceVariant,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
+                        letterSpacing: 0.05,
                       ),
                     ),
                     const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(4),
+                      decoration: const BoxDecoration(
+                        color: AppColors.surfaceContainer,
+                        borderRadius: BorderRadius.zero,
                       ),
                       child: Text(
                         '${files.length}',
                         style: const TextStyle(
-                          color: AppColors.textMuted,
+                          color: AppColors.onSurfaceVariant,
                           fontSize: 11,
                         ),
                       ),
@@ -92,7 +93,7 @@ class _FileTreePanelState extends State<FileTreePanel> {
             ],
           ),
         ),
-        const VerticalDivider(width: 1, color: AppColors.border),
+        Container(width: 1, color: AppColors.outline.withValues(alpha: 0.15)),
         // File content viewer (right)
         Expanded(
           child: _selectedFile != null && files.containsKey(_selectedFile)
@@ -123,10 +124,7 @@ class _FileTreePanelState extends State<FileTreePanel> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: const BoxDecoration(
-            color: AppColors.surface,
-            border: Border(
-              bottom: BorderSide(color: AppColors.border),
-            ),
+            color: AppColors.surfaceContainerLow,
           ),
           child: Row(
             children: [
@@ -136,9 +134,10 @@ class _FileTreePanelState extends State<FileTreePanel> {
                 child: Text(
                   filename,
                   style: const TextStyle(
-                    color: AppColors.textPrimary,
+                    color: AppColors.onSurface,
                     fontSize: 13,
                     fontFamily: 'Consolas',
+                    fontFeatures: [FontFeature.tabularFigures()],
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -146,25 +145,28 @@ class _FileTreePanelState extends State<FileTreePanel> {
               Text(
                 '${content.split('\n').length} lines',
                 style: const TextStyle(
-                  color: AppColors.textMuted,
+                  color: AppColors.onSurfaceVariant,
                   fontSize: 11,
                 ),
               ),
             ],
           ),
         ),
-        // Content
+        // Content - carved out effect
         Expanded(
-          child: SingleChildScrollView(
-            child: HighlightView(
-              content,
-              language: lang,
-              theme: monokaiSublimeTheme,
-              padding: const EdgeInsets.all(16),
-              textStyle: const TextStyle(
-                fontFamily: 'Consolas',
-                fontSize: 13,
-                height: 1.5,
+          child: Container(
+            color: AppColors.surfaceContainerLowest,
+            child: SingleChildScrollView(
+              child: HighlightView(
+                content,
+                language: lang,
+                theme: monokaiSublimeTheme,
+                padding: const EdgeInsets.all(16),
+                textStyle: const TextStyle(
+                  fontFamily: 'Consolas',
+                  fontSize: 13,
+                  height: 1.5,
+                ),
               ),
             ),
           ),
@@ -174,35 +176,41 @@ class _FileTreePanelState extends State<FileTreePanel> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.folder_off, size: 64, color: AppColors.textMuted.withValues(alpha: 0.3)),
-          const SizedBox(height: 16),
-          const Text(
-            'No generated files yet',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+    return Container(
+      color: AppColors.surface,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.folder_off, size: 64, color: AppColors.onSurfaceVariant.withValues(alpha: 0.2)),
+            const SizedBox(height: 16),
+            const Text(
+              'No generated files yet',
+              style: TextStyle(
+                color: AppColors.onSurfaceVariant,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Generate an app from the Generate tab first',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-          ),
-        ],
+            const SizedBox(height: 8),
+            const Text(
+              'Generate an app from the Generate tab first',
+              style: TextStyle(color: AppColors.outline, fontSize: 13),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSelectPrompt() {
-    return const Center(
-      child: Text(
-        'Select a file to view its contents',
-        style: TextStyle(color: AppColors.textMuted, fontSize: 14),
+    return Container(
+      color: AppColors.surface,
+      child: const Center(
+        child: Text(
+          'Select a file to view its contents',
+          style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 14),
+        ),
       ),
     );
   }
@@ -217,10 +225,10 @@ class _FileTreePanelState extends State<FileTreePanel> {
   }
 
   Color _getFileColor(String filename) {
-    if (filename.endsWith('.kt')) return const Color(0xFF7F52FF); // Kotlin purple
+    if (filename.endsWith('.kt')) return AppColors.primary;
     if (filename.endsWith('.xml')) return AppColors.warning;
-    if (filename.endsWith('.gradle.kts')) return AppColors.accent;
-    return AppColors.textMuted;
+    if (filename.endsWith('.gradle.kts')) return AppColors.primary;
+    return AppColors.onSurfaceVariant;
   }
 }
 
@@ -229,11 +237,7 @@ class _FileItem extends StatefulWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _FileItem({
-    required this.path,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _FileItem({required this.path, required this.isSelected, required this.onTap});
 
   @override
   State<_FileItem> createState() => _FileItemState();
@@ -257,17 +261,13 @@ class _FileItemState extends State<_FileItem> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           color: widget.isSelected
-              ? AppColors.accent.withValues(alpha: 0.1)
+              ? AppColors.primary.withValues(alpha: 0.1)
               : _hovered
-                  ? AppColors.card.withValues(alpha: 0.5)
+                  ? AppColors.surfaceVariant
                   : Colors.transparent,
           child: Row(
             children: [
-              Icon(
-                _getIcon(filename),
-                size: 16,
-                color: _getColor(filename),
-              ),
+              Icon(_getIcon(filename), size: 16, color: _getColor(filename)),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -276,9 +276,7 @@ class _FileItemState extends State<_FileItem> {
                     Text(
                       filename,
                       style: TextStyle(
-                        color: widget.isSelected
-                            ? AppColors.accent
-                            : AppColors.textPrimary,
+                        color: widget.isSelected ? AppColors.primary : AppColors.onSurface,
                         fontSize: 13,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -287,7 +285,7 @@ class _FileItemState extends State<_FileItem> {
                       Text(
                         dir,
                         style: const TextStyle(
-                          color: AppColors.textMuted,
+                          color: AppColors.onSurfaceVariant,
                           fontSize: 10,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -312,9 +310,9 @@ class _FileItemState extends State<_FileItem> {
   }
 
   Color _getColor(String filename) {
-    if (filename.endsWith('.kt')) return const Color(0xFF7F52FF);
+    if (filename.endsWith('.kt')) return AppColors.primary;
     if (filename.endsWith('.xml')) return AppColors.warning;
-    if (filename.endsWith('.gradle.kts')) return AppColors.accent;
-    return AppColors.textMuted;
+    if (filename.endsWith('.gradle.kts')) return AppColors.primary;
+    return AppColors.onSurfaceVariant;
   }
 }

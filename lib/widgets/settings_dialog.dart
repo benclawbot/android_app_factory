@@ -38,11 +38,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.border),
-      ),
+      backgroundColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.95),
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: Container(
         width: 520,
         padding: const EdgeInsets.all(32),
@@ -55,37 +53,39 @@ class _SettingsDialogState extends State<SettingsDialog> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.purple.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
+                  decoration: const BoxDecoration(
+                    color: AppColors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.zero,
                   ),
-                  child: const Icon(Icons.settings, color: AppColors.purple, size: 20),
+                  child: const Icon(Icons.settings, color: AppColors.primary, size: 20),
                 ),
                 const SizedBox(width: 12),
                 const Text(
                   'Settings',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: AppColors.onSurface,
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.01,
                   ),
                 ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.textMuted),
+                  icon: const Icon(Icons.close, color: AppColors.onSurfaceVariant),
                 ),
               ],
             ),
             const SizedBox(height: 28),
 
             // LLM Provider selection
-            const Text(
-              'LLM Provider',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
+            Text(
+              'LLM Provider'.toUpperCase(),
+              style: const TextStyle(
+                color: AppColors.onSurfaceVariant,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
+                letterSpacing: 0.05,
               ),
             ),
             const SizedBox(height: 10),
@@ -94,7 +94,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 _ProviderCard(
                   label: 'MiniMax M2.7',
                   icon: Icons.auto_awesome,
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                   isSelected: _selectedProvider == LLMProvider.minimax,
                   onTap: () => setState(() => _selectedProvider = LLMProvider.minimax),
                 ),
@@ -102,7 +102,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 _ProviderCard(
                   label: 'Claude Opus 4',
                   icon: Icons.psychology,
-                  color: AppColors.purple,
+                  color: AppColors.surfaceContainerHighest,
                   isSelected: _selectedProvider == LLMProvider.anthropic,
                   onTap: () => setState(() => _selectedProvider = LLMProvider.anthropic),
                 ),
@@ -111,12 +111,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
             const SizedBox(height: 24),
 
             // API Key
-            const Text(
-              'API Key',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
+            Text(
+              'API Key'.toUpperCase(),
+              style: const TextStyle(
+                color: AppColors.onSurfaceVariant,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
+                letterSpacing: 0.05,
               ),
             ),
             const SizedBox(height: 8),
@@ -124,9 +125,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
               controller: _apiKeyController,
               obscureText: !_showKey,
               style: const TextStyle(
-                color: AppColors.textPrimary,
+                color: AppColors.onSurface,
                 fontSize: 14,
                 fontFamily: 'Consolas',
+                fontFeatures: [FontFeature.tabularFigures()],
               ),
               decoration: InputDecoration(
                 hintText: _selectedProvider == LLMProvider.minimax
@@ -136,41 +138,44 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   icon: Icon(
                     _showKey ? Icons.visibility_off : Icons.visibility,
                     size: 18,
-                    color: AppColors.textMuted,
+                    color: AppColors.onSurfaceVariant,
                   ),
                   onPressed: () => setState(() => _showKey = !_showKey),
                 ),
+                fillColor: AppColors.surfaceContainerLowest,
               ),
             ),
             const SizedBox(height: 20),
 
             // Custom Endpoint (optional)
-            const Text(
-              'Custom Endpoint (optional)',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
+            Text(
+              'Custom Endpoint (optional)'.toUpperCase(),
+              style: const TextStyle(
+                color: AppColors.onSurfaceVariant,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
+                letterSpacing: 0.05,
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _endpointController,
               style: const TextStyle(
-                color: AppColors.textPrimary,
+                color: AppColors.onSurface,
                 fontSize: 14,
               ),
               decoration: InputDecoration(
                 hintText: _selectedProvider == LLMProvider.minimax
                     ? 'https://api.minimax.io'
                     : 'https://api.anthropic.com',
+                fillColor: AppColors.surfaceContainerLowest,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Leave empty to use the default endpoint',
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
                 fontSize: 11,
               ),
             ),
@@ -238,27 +243,22 @@ class _ProviderCardState extends State<_ProviderCard> {
               color: widget.isSelected
                   ? widget.color.withValues(alpha: 0.12)
                   : _hovered
-                      ? AppColors.card
-                      : AppColors.bg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: widget.isSelected
-                    ? widget.color.withValues(alpha: 0.5)
-                    : AppColors.border,
-                width: widget.isSelected ? 2 : 1,
-              ),
+                      ? AppColors.surfaceVariant
+                      : AppColors.surfaceContainerLow,
+              borderRadius: BorderRadius.zero,
+              border: widget.isSelected
+                  ? Border.all(color: widget.color.withValues(alpha: 0.5), width: 2)
+                  : null,
             ),
             child: Row(
               children: [
-                Icon(widget.icon, color: widget.color, size: 20),
+                Icon(widget.icon, color: widget.isSelected ? widget.color : AppColors.onSurfaceVariant, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     widget.label,
                     style: TextStyle(
-                      color: widget.isSelected
-                          ? widget.color
-                          : AppColors.textSecondary,
+                      color: widget.isSelected ? widget.color : AppColors.onSurfaceVariant,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),

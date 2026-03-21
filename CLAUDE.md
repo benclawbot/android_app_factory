@@ -2,6 +2,12 @@
 
 Stack: Provider | Material Icons | max-w-1400
 
+## Windows CMD Git Gotcha
+**IMPORTANT**: Forward slashes in paths get misinterpreted as git flags. Always use ONE of:
+- Backslashes: `git add lib\providers\foo.dart`
+- Quotes: `git add "lib/providers/foo.dart"`
+- `-C` flag: `git -C C:\path\to\repo add .`
+
 ## Quick Reference
 - **Flutter SDK**: C:\flutter\bin (add to PATH)
 - **Build**: `set PATH=C:\flutter\bin;%PATH% && flutter build windows`

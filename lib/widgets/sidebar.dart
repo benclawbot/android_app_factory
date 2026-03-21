@@ -18,10 +18,7 @@ class Sidebar extends StatelessWidget {
     return Container(
       width: 72,
       decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          right: BorderSide(color: AppColors.border, width: 1),
-        ),
+        color: AppColors.surfaceContainerLow, // Tonal separation, no border
       ),
       child: Column(
         children: [
@@ -92,18 +89,14 @@ class _SidebarIconState extends State<_SidebarIcon> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
+              // Active state uses primary accent sparingly
               color: widget.isSelected
-                  ? AppColors.accent.withValues(alpha: 0.15)
+                  ? AppColors.primary.withValues(alpha: 0.12)
                   : _hovered
-                      ? AppColors.card
+                      ? AppColors.surfaceVariant
                       : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-              border: widget.isSelected
-                  ? Border.all(
-                      color: AppColors.accent.withValues(alpha: 0.3),
-                      width: 1,
-                    )
-                  : null,
+              // 0px radius - Pro IDE
+              borderRadius: BorderRadius.zero,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -112,19 +105,21 @@ class _SidebarIconState extends State<_SidebarIcon> {
                   widget.icon,
                   size: 22,
                   color: widget.isSelected
-                      ? AppColors.accent
+                      ? AppColors.primary
                       : _hovered
                           ? AppColors.textPrimary
-                          : AppColors.textMuted,
+                          : AppColors.onSurfaceVariant,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   widget.label,
                   style: TextStyle(
                     fontSize: 9,
+                    fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.w500,
+                    letterSpacing: 0.02,
                     color: widget.isSelected
-                        ? AppColors.accent
-                        : AppColors.textMuted,
+                        ? AppColors.primary
+                        : AppColors.onSurfaceVariant,
                   ),
                 ),
               ],

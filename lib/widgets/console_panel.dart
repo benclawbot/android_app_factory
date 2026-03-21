@@ -43,22 +43,15 @@ class _ConsolePanelState extends State<ConsolePanel> {
     if (state.logs.isNotEmpty) _scrollToBottom();
 
     return Container(
-      color: const Color(0xFF0A0A0A),
+      color: AppColors.surfaceContainerLowest, // Carved out effect
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(genProv, state),
-
-          // Progress bar for generation and build
-          if (genProv.isGenerating)
-            _buildProgressBar(state),
-
-          // Build phase banner
+          if (genProv.isGenerating) _buildProgressBar(state),
           if (state.status == GenerationStatus.building ||
               state.status == GenerationStatus.fixing)
             _buildPhaseBanner(state),
-
-          // Log list
           Expanded(
             child: state.logs.isEmpty
                 ? _buildEmptyState()
@@ -77,14 +70,15 @@ class _ConsolePanelState extends State<ConsolePanel> {
                             fontSize: 13,
                             height: 1.5,
                             color: _getLogColor(log),
+                            fontFeatures: const [
+                              FontFeature.tabularFigures(),
+                            ],
                           ),
                         ),
                       );
                     },
                   ),
           ),
-
-          // Bottom status bar
           _buildBottomBar(state),
         ],
       ),
@@ -97,19 +91,20 @@ class _ConsolePanelState extends State<ConsolePanel> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+        color: AppColors.surfaceContainerLow,
+        // Tonal separation instead of border
       ),
       child: Row(
         children: [
-          const Icon(Icons.terminal, size: 16, color: AppColors.accent),
+          const Icon(Icons.terminal, size: 16, color: AppColors.primary),
           const SizedBox(width: 8),
           const Text(
             'Console Output',
             style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
+              color: AppColors.onSurfaceVariant,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
+              letterSpacing: 0.05,
             ),
           ),
           const Spacer(),
@@ -117,16 +112,14 @@ class _ConsolePanelState extends State<ConsolePanel> {
             _StatusChip(status: state.status),
             const SizedBox(width: 8),
           ],
-          // Build attempt indicator
           if ((state.status == GenerationStatus.building ||
                   state.status == GenerationStatus.fixing) &&
-              state.buildAttempt > 0) ...[
+              state.buildAttempt > 0)
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
+                color: AppColors.warning.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.zero,
               ),
               child: Text(
                 'Attempt ${state.buildAttempt}/${state.maxBuildAttempts}',
@@ -134,15 +127,15 @@ class _ConsolePanelState extends State<ConsolePanel> {
                   color: AppColors.warning,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
+                  letterSpacing: 0.02,
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-          ],
+          const SizedBox(width: 8),
           IconButton(
             onPressed: genProv.reset,
             icon: const Icon(Icons.delete_outline, size: 16),
-            color: AppColors.textMuted,
+            color: AppColors.onSurfaceVariant,
             tooltip: 'Clear console',
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
@@ -160,11 +153,11 @@ class _ConsolePanelState extends State<ConsolePanel> {
 
     return LinearProgressIndicator(
       value: isBuild ? null : (state.progress > 0 ? state.progress : null),
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.surfaceContainer,
       valueColor: AlwaysStoppedAnimation<Color>(
-        isBuild ? AppColors.warning : AppColors.accent,
+        isBuild ? AppColors.warning : AppColors.primary,
       ),
-      minHeight: 3,
+      minHeight: 2,
     );
   }
 
@@ -172,11 +165,11 @@ class _ConsolePanelState extends State<ConsolePanel> {
 
   Widget _buildPhaseBanner(GenerationState state) {
     final isFixing = state.status == GenerationStatus.fixing;
-    final color = isFixing ? AppColors.warning : AppColors.accent;
+    final color = isFixing ? AppColors.warning : AppColors.primary;
     final icon = isFixing ? Icons.auto_fix_high : Icons.construction;
     final label = isFixing
-        ? '🔧 Fixing errors with AI (attempt ${state.buildAttempt}/${state.maxBuildAttempts})...'
-        : '🔨 Building APK (attempt ${state.buildAttempt}/${state.maxBuildAttempts})...';
+        ? 'Fixing errors with AI (attempt ${state.buildAttempt}/${state.maxBuildAttempts})...'
+        : 'Building APK (attempt ${state.buildAttempt}/${state.maxBuildAttempts})...';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -210,13 +203,11 @@ class _ConsolePanelState extends State<ConsolePanel> {
   // ── Bottom status bar ─────────────────────────────────────────────────────────
 
   Widget _buildBottomBar(GenerationState state) {
-    // Build success — show APK path
     if (state.status == GenerationStatus.buildSuccess &&
         state.apkPath != null) {
       return _SuccessBar(apkPath: state.apkPath!, outputPath: state.outputPath);
     }
 
-    // Build failed after all attempts
     if (state.status == GenerationStatus.buildFailed) {
       return _FailureBar(
         errorCount: state.buildErrors.length,
@@ -224,14 +215,11 @@ class _ConsolePanelState extends State<ConsolePanel> {
       );
     }
 
-    // Code generation complete (no build requested)
-    if (state.status == GenerationStatus.complete &&
-        state.outputPath != null) {
+    if (state.status == GenerationStatus.complete && state.outputPath != null) {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: const BoxDecoration(
-          color: AppColors.surface,
-          border: Border(top: BorderSide(color: AppColors.border)),
+          color: AppColors.surfaceContainerLow,
         ),
         child: Row(
           children: [
@@ -241,7 +229,7 @@ class _ConsolePanelState extends State<ConsolePanel> {
               child: Text(
                 'Project saved to: ${state.outputPath}',
                 style: const TextStyle(
-                  color: AppColors.textSecondary,
+                  color: AppColors.onSurfaceVariant,
                   fontSize: 12,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -253,7 +241,7 @@ class _ConsolePanelState extends State<ConsolePanel> {
               icon: const Icon(Icons.folder_open, size: 14),
               label: const Text('Open in Android Studio'),
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.accent,
+                foregroundColor: AppColors.primary,
                 textStyle: const TextStyle(fontSize: 12),
               ),
             ),
@@ -273,16 +261,17 @@ class _ConsolePanelState extends State<ConsolePanel> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.terminal,
-              size: 48, color: AppColors.textMuted.withValues(alpha: 0.3)),
+              size: 48, color: AppColors.onSurfaceVariant.withValues(alpha: 0.2)),
           const SizedBox(height: 12),
           const Text(
             'Console output will appear here',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+            style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13),
           ),
           const SizedBox(height: 4),
           const Text(
             'Describe your app and hit Generate',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+            style:
+                TextStyle(color: AppColors.outline, fontSize: 11),
           ),
         ],
       ),
@@ -297,24 +286,31 @@ class _ConsolePanelState extends State<ConsolePanel> {
       return AppColors.error;
     }
     if (log.startsWith('✅') || log.startsWith('🎉')) return AppColors.success;
-    if (log.startsWith('⚡') || log.startsWith('🚀')) return AppColors.accent;
+    if (log.startsWith('⚡') || log.startsWith('🚀')) return AppColors.primary;
     if (log.startsWith('🔨') || log.startsWith('🔧')) return AppColors.warning;
+    if (log.startsWith('📂')) return AppColors.primary;
     if (log.startsWith('  📄') || log.startsWith('  🔧')) {
-      return AppColors.textMuted;
+      return AppColors.onSurfaceVariant;
     }
-    // Gradle output lines (indented or starting with > Task, BUILD, etc.)
     if (log.startsWith('> Task') || log.startsWith('BUILD')) {
       return log.contains('FAILED')
           ? AppColors.error
-          : log.contains('SUCCESS')
+          : log.contains('SUCCESS') || log.contains('BUILD')
               ? AppColors.success
-              : AppColors.textSecondary;
+              : AppColors.onSurfaceVariant;
     }
     if (log.startsWith('w: ')) return AppColors.warning;
-    return AppColors.textSecondary;
+    return AppColors.onSurfaceVariant;
   }
 
-  // ── Studio/APK openers ────────────────────────────────────────────────────────
+  void _openInAndroidStudio(String projectPath) {
+    final studio = _findAndroidStudio();
+    if (studio != null) {
+      Process.start(studio, [projectPath], mode: ProcessStartMode.detached);
+    } else {
+      Process.start('explorer.exe', [projectPath], mode: ProcessStartMode.detached);
+    }
+  }
 
   String? _findAndroidStudio() {
     final candidates = [
@@ -324,29 +320,7 @@ class _ConsolePanelState extends State<ConsolePanel> {
     for (final c in candidates) {
       if (File(c).existsSync()) return c;
     }
-    final appData = Platform.environment['LOCALAPPDATA'] ?? '';
-    final toolboxPath =
-        '$appData\\JetBrains\\Toolbox\\apps\\AndroidStudio\\ch-0';
-    try {
-      final dir = Directory(toolboxPath);
-      if (dir.existsSync()) {
-        for (final entry in dir.listSync().whereType<Directory>()) {
-          final candidate = '${entry.path}\\bin\\studio64.exe';
-          if (File(candidate).existsSync()) return candidate;
-        }
-      }
-    } catch (_) {}
     return null;
-  }
-
-  void _openInAndroidStudio(String projectPath) {
-    final studio = _findAndroidStudio();
-    if (studio != null) {
-      Process.start(studio, [projectPath], mode: ProcessStartMode.detached);
-    } else {
-      Process.start('explorer.exe', [projectPath],
-          mode: ProcessStartMode.detached);
-    }
   }
 }
 
@@ -365,7 +339,7 @@ class _SuccessBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.success.withValues(alpha: 0.08),
         border: Border(
-          top: BorderSide(color: AppColors.success.withValues(alpha: 0.4)),
+          top: BorderSide(color: AppColors.success.withValues(alpha: 0.3)),
         ),
       ),
       child: Column(
@@ -374,11 +348,10 @@ class _SuccessBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.check_circle,
-                  color: AppColors.success, size: 16),
+              const Icon(Icons.check_circle, color: AppColors.success, size: 16),
               const SizedBox(width: 8),
               const Text(
-                '✅ APK built successfully!',
+                'APK built successfully!',
                 style: TextStyle(
                   color: AppColors.success,
                   fontSize: 13,
@@ -390,15 +363,16 @@ class _SuccessBar extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.android, color: AppColors.textMuted, size: 14),
+              const Icon(Icons.android, color: AppColors.onSurfaceVariant, size: 14),
               const SizedBox(width: 6),
               Expanded(
                 child: SelectableText(
                   apkPath,
                   style: const TextStyle(
-                    color: AppColors.textSecondary,
+                    color: AppColors.onSurfaceVariant,
                     fontSize: 11,
                     fontFamily: 'Consolas',
+                    fontFeatures: [FontFeature.tabularFigures()],
                   ),
                 ),
               ),
@@ -418,7 +392,7 @@ class _SuccessBar extends StatelessWidget {
                 _ActionBtn(
                   icon: Icons.launch,
                   label: 'Open in Android Studio',
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                   onTap: () => _openInStudio(outputPath!),
                 ),
             ],
@@ -429,22 +403,16 @@ class _SuccessBar extends StatelessWidget {
   }
 
   void _openFolder(String filePath) {
-    final dir = File(filePath).parent.path;
-    Process.start('explorer.exe', [dir], mode: ProcessStartMode.detached);
+    Process.start('explorer.exe', ['/select,', filePath], mode: ProcessStartMode.detached);
   }
 
   void _openInStudio(String projectPath) {
-    final candidates = [
-      r'C:\Program Files\Android\Android Studio\bin\studio64.exe',
-    ];
-    for (final c in candidates) {
-      if (File(c).existsSync()) {
-        Process.start(c, [projectPath], mode: ProcessStartMode.detached);
-        return;
-      }
+    const studio = r'C:\Program Files\Android\Android Studio\bin\studio64.exe';
+    if (File(studio).existsSync()) {
+      Process.start(studio, [projectPath], mode: ProcessStartMode.detached);
+    } else {
+      Process.start('explorer.exe', [projectPath], mode: ProcessStartMode.detached);
     }
-    Process.start('explorer.exe', [projectPath],
-        mode: ProcessStartMode.detached);
   }
 }
 
@@ -463,7 +431,7 @@ class _FailureBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.error.withValues(alpha: 0.08),
         border: Border(
-          top: BorderSide(color: AppColors.error.withValues(alpha: 0.4)),
+          top: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
         ),
       ),
       child: Row(
@@ -487,7 +455,7 @@ class _FailureBar extends StatelessWidget {
   }
 }
 
-// ── Small action button ───────────────────────────────────────────────────────
+// ── Action button ────────────────────────────────────────────────────────────
 
 class _ActionBtn extends StatelessWidget {
   final IconData icon;
@@ -506,12 +474,12 @@ class _ActionBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.zero,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.zero,
           border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
@@ -521,8 +489,7 @@ class _ActionBtn extends StatelessWidget {
             const SizedBox(width: 5),
             Text(
               label,
-              style: TextStyle(
-                  color: color, fontSize: 12, fontWeight: FontWeight.w500),
+              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -541,27 +508,26 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (status) {
-      GenerationStatus.generating => ('Generating', AppColors.accent),
+      GenerationStatus.generating => ('Generating', AppColors.primary),
       GenerationStatus.writingFiles => ('Writing Files', AppColors.warning),
       GenerationStatus.building => ('Building', AppColors.warning),
       GenerationStatus.fixing => ('Fixing Errors', AppColors.warning),
       GenerationStatus.complete => ('Complete', AppColors.success),
-      GenerationStatus.buildSuccess => ('APK Ready ✅', AppColors.success),
+      GenerationStatus.buildSuccess => ('APK Ready', AppColors.success),
       GenerationStatus.buildFailed => ('Build Failed', AppColors.error),
       GenerationStatus.error => ('Error', AppColors.error),
-      GenerationStatus.idle => ('Idle', AppColors.textMuted),
+      GenerationStatus.idle => ('Idle', AppColors.onSurfaceVariant),
     };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.zero,
       ),
       child: Text(
         label,
-        style:
-            TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.02),
       ),
     );
   }

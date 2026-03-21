@@ -84,15 +84,16 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.purple.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(6),
+              color: AppColors.primary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.zero,
             ),
             child: Text(
               'MVP',
               style: TextStyle(
-                color: AppColors.purple,
+                color: AppColors.primary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
               ),
             ),
           ),
@@ -102,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.zero,
               border: Border.all(color: AppColors.border),
             ),
             child: Row(
@@ -132,27 +133,28 @@ class _HomeScreenState extends State<HomeScreen> {
               message: 'View app history',
               child: InkWell(
                 onTap: () => setState(() => _selectedTab = 2),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.zero,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.purple.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.zero,
                     border: Border.all(
-                        color: AppColors.purple.withValues(alpha: 0.3)),
+                        color: AppColors.primary.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.history,
-                          size: 14, color: AppColors.purple),
+                      Icon(Icons.history,
+                          size: 14, color: AppColors.primary),
                       const SizedBox(width: 6),
                       Text(
                         '${histProv.records.length} app${histProv.records.length == 1 ? '' : 's'}',
-                        style: const TextStyle(
-                          color: AppColors.purple,
+                        style: TextStyle(
+                          color: AppColors.primary,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ],
