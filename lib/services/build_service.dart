@@ -121,22 +121,46 @@ class BuildService {
 
       final exitCode = await process.exitCode;
 
-      if (exitCode == 0) {
+      // Check for fatal errors that exit code 0 doesn't catch
+      // (e.g. missing gradle-wrapper.jar, ClassNotFoundException)
+      final outputText = outputLines.join('\n');
+      final hasFatalError =
+          outputText.contains('ClassNotFoundException') ||
+          outputText.contains('Could not find or load main class') ||
+          outputText.contains('gradle-wrapper.jar not found') ||
+          outputText.contains('Error: Could not find or load');
+
+      if (exitCode == 0 && !hasFatalError) {
         final apk = _findApk(projectPath);
-        onLine('');
-        onLine('✅ Build succeeded! Exit code: 0');
-        if (apk != null) onLine('📦 APK: $apk');
-        return BuildResult(
-          success: true,
-          outputLines: outputLines,
-          errors: [],
-          apkPath: apk,
-        );
+        if (apk != null) {
+          onLine('');
+          onLine('✅ Build succeeded! Exit code: 0');
+          onLine('📦 APK: $apk');
+          return BuildResult(
+            success: true,
+            outputLines: outputLines,
+            errors: [],
+            apkPath: apk,
+          );
+        } else {
+          // Exit code 0 but no APK found — treat as failure
+          onLine('');
+          onLine('❌ Build returned exit code 0 but no APK was produced.');
+          return BuildResult(
+            success: false,
+            outputLines: outputLines,
+            errors: [],
+          );
+        }
       } else {
         final errors = _parseErrors(outputLines, projectPath);
         onLine('');
-        onLine('❌ Build failed (exit code $exitCode). '
-            '${errors.length} error(s) found.');
+        if (hasFatalError) {
+          onLine('❌ Build failed — fatal error detected in output.');
+        } else {
+          onLine('❌ Build failed (exit code $exitCode). '
+              '${errors.length} error(s) found.');
+        }
         return BuildResult(
           success: false,
           outputLines: outputLines,

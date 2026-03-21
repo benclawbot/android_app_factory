@@ -300,17 +300,17 @@ class GenerationProvider extends ChangeNotifier {
   /// with the APK file selected.
   Future<void> _openFolder(String apkPath) async {
     try {
-      // Use cmd /c to run explorer with proper Windows argument handling
-      // /select, tells explorer to open and select the specified file
-      final result = await Process.run(
-        'cmd.exe',
-        ['/c', 'start', 'explorer', '/select,', apkPath],
+      // Normalize to backslashes for Windows Explorer
+      final winPath = apkPath.replaceAll('/', '\\');
+      // explorer.exe /select, requires the path immediately after the comma
+      // Using Process.run with runInShell avoids argument-splitting issues
+      await Process.run(
+        'explorer.exe',
+        ['/select,"$winPath"'],
+        runInShell: true,
       );
-      if (result.exitCode == 0) {
-        _addLog('📂 Opened APK folder: $apkPath');
-      } else {
-        _addLog('⚠️  Explorer returned exit code: ${result.exitCode}');
-      }
+      // explorer.exe always returns exit code 1, even on success
+      _addLog('📂 Opened APK folder: $apkPath');
     } catch (e) {
       _addLog('⚠️  Could not open APK folder: $e');
     }

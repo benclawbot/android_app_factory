@@ -309,9 +309,20 @@ set DIRNAME=%~dp0
 set APP_HOME=%DIRNAME%
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
+
+@rem Verify gradle-wrapper.jar exists before attempting to run
+if not exist "%CLASSPATH%" (
+    echo ERROR: gradle-wrapper.jar not found at %CLASSPATH% >&2
+    exit /b 1
+)
+
 java %DEFAULT_JVM_OPTS% %JAVA_OPTS% -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
+
+@rem Propagate the exit code from Java/Gradle
+set EXIT_CODE=%ERRORLEVEL%
 :end
 endlocal
+exit /b %EXIT_CODE%
 ''';
 
   static String get gradlewSh => '''
