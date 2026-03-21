@@ -810,7 +810,7 @@ A recipe book app with a home screen showing recipe cards with photos. Each card
   // ── Auto-build row ────────────────────────────────────────────────────────
 
   Widget _buildAutoBuildRow(AppProvider appProv) {
-    const attempts = [1, 2, 3, 5];
+    const attempts = [1, 2, 3, 5, 10];
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -876,7 +876,7 @@ A recipe book app with a home screen showing recipe cards with photos. Each card
                   child: DropdownButton<int>(
                     value: attempts.contains(appProv.maxBuildAttempts)
                         ? appProv.maxBuildAttempts
-                        : 3,
+                        : 10,
                     items: attempts
                         .map((n) => DropdownMenuItem(
                               value: n,

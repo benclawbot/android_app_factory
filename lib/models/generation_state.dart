@@ -34,7 +34,7 @@ class GenerationState {
     this.errorMessage,
     this.generatedFiles = const {},
     this.buildAttempt = 0,
-    this.maxBuildAttempts = 3,
+    this.maxBuildAttempts = 10,
     this.apkPath,
     this.buildErrors = const [],
   });

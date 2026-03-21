@@ -13,7 +13,7 @@ class AppProvider extends ChangeNotifier {
   String _packageName = 'com.app.myapp';
   String _prompt = '';
   bool _autoBuild = true;
-  int _maxBuildAttempts = 3;
+  int _maxBuildAttempts = 10;
   String? _customIconPath; // Path to user-imported icon file (null = auto-generate)
 
   LLMConfig get llmConfig => _llmConfig;
@@ -38,7 +38,7 @@ class AppProvider extends ChangeNotifier {
     final customEndpoint = prefs.getString('custom_endpoint');
     _outputDirectory = prefs.getString('output_directory') ?? '';
     _autoBuild = prefs.getBool('auto_build') ?? true;
-    _maxBuildAttempts = prefs.getInt('max_build_attempts') ?? 3;
+    _maxBuildAttempts = prefs.getInt('max_build_attempts') ?? 10;
 
     _llmConfig = LLMConfig(
       provider: LLMProvider.values[providerIndex],

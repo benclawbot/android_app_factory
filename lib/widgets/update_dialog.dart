@@ -27,7 +27,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
   UpdateMode _mode = UpdateMode.smartPatch;
   bool _autoBuild = true;
-  int _maxBuildAttempts = 3;
+  int _maxBuildAttempts = 10;
   bool _isUpdating = false;
   double _progress = 0.0;
   final List<String> _logs = [];
@@ -509,7 +509,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
               decoration: const BoxDecoration(color: AppColors.surfaceContainerHigh),
               child: DropdownButton<int>(
                 value: _maxBuildAttempts,
-                items: [1, 2, 3, 5]
+                items: [1, 2, 3, 5, 10]
                     .map((n) => DropdownMenuItem(
                           value: n,
                           child: Text('$n', style: const TextStyle(color: AppColors.onSurface, fontSize: 12)),

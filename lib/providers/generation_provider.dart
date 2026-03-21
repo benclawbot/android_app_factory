@@ -49,7 +49,7 @@ class GenerationProvider extends ChangeNotifier {
     required LLMConfig llmConfig,
     HistoryProvider? historyProvider,
     bool autoBuild = true,
-    int maxBuildAttempts = 3,
+    int maxBuildAttempts = 10,
     String? customIconPath,
   }) async {
     _state = GenerationState(
