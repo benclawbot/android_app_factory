@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+enum BuildStatus { notBuilt, success, failed }
+
 class UpdateEntry {
   final String prompt;
   final DateTime timestamp;
@@ -35,6 +37,11 @@ class AppRecord {
   final DateTime updatedAt;
   final List<UpdateEntry> updates;
 
+  // Build phase fields
+  final BuildStatus buildStatus;
+  final String? apkPath;
+  final int buildAttempts;
+
   const AppRecord({
     required this.id,
     required this.appName,
@@ -45,6 +52,9 @@ class AppRecord {
     required this.createdAt,
     required this.updatedAt,
     this.updates = const [],
+    this.buildStatus = BuildStatus.notBuilt,
+    this.apkPath,
+    this.buildAttempts = 0,
   });
 
   AppRecord copyWith({
@@ -55,6 +65,9 @@ class AppRecord {
     Map<String, String>? files,
     DateTime? updatedAt,
     List<UpdateEntry>? updates,
+    BuildStatus? buildStatus,
+    String? apkPath,
+    int? buildAttempts,
   }) {
     return AppRecord(
       id: id,
@@ -66,6 +79,9 @@ class AppRecord {
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       updates: updates ?? this.updates,
+      buildStatus: buildStatus ?? this.buildStatus,
+      apkPath: apkPath ?? this.apkPath,
+      buildAttempts: buildAttempts ?? this.buildAttempts,
     );
   }
 
@@ -79,6 +95,9 @@ class AppRecord {
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
         'updates': updates.map((u) => u.toJson()).toList(),
+        'buildStatus': buildStatus.name,
+        'apkPath': apkPath,
+        'buildAttempts': buildAttempts,
       };
 
   factory AppRecord.fromJson(Map<String, dynamic> json) => AppRecord(
@@ -93,6 +112,12 @@ class AppRecord {
         updates: (json['updates'] as List<dynamic>? ?? [])
             .map((u) => UpdateEntry.fromJson(u as Map<String, dynamic>))
             .toList(),
+        buildStatus: BuildStatus.values.firstWhere(
+          (s) => s.name == (json['buildStatus'] as String? ?? 'notBuilt'),
+          orElse: () => BuildStatus.notBuilt,
+        ),
+        apkPath: json['apkPath'] as String?,
+        buildAttempts: (json['buildAttempts'] as int?) ?? 0,
       );
 
   /// How many source .kt files are in this record

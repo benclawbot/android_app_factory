@@ -179,6 +179,76 @@ class ProjectGenerator {
     // Write gradlew for Linux/Mac
     final gradlew = File(p.join(outputDir, 'gradlew'));
     await gradlew.writeAsString(AndroidTemplates.gradlewSh);
+
+    // Copy gradle-wrapper.jar so gradlew actually works
+    await _copyGradleWrapperJar(outputDir);
+  }
+
+  /// Finds a gradle-wrapper.jar from already-downloaded Gradle distributions
+  /// on this machine and copies it into the new project's wrapper directory.
+  Future<void> _copyGradleWrapperJar(String outputDir) async {
+    final destDir = Directory(p.join(outputDir, 'gradle', 'wrapper'));
+    await destDir.create(recursive: true);
+    final destJar = File(p.join(destDir.path, 'gradle-wrapper.jar'));
+
+    if (destJar.existsSync()) return; // already there
+
+    final home =
+        Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'] ?? '';
+
+    // Candidate locations in priority order
+    final candidates = <String>[
+      // Exact version we use in the template
+      p.join(home, '.gradle', 'wrapper', 'dists', 'gradle-8.14.4-bin'),
+      p.join(home, '.gradle', 'wrapper', 'dists', 'gradle-8.14-bin'),
+      p.join(home, '.gradle', 'wrapper', 'dists', 'gradle-8.13-bin'),
+    ];
+
+    // Try each candidate directory (they contain a hash subdirectory)
+    for (final base in candidates) {
+      final dir = Directory(base);
+      if (!dir.existsSync()) continue;
+      try {
+        for (final hash in dir.listSync().whereType<Directory>()) {
+          final jar = File(p.join(hash.path, 'gradle-wrapper.jar'));
+          if (jar.existsSync()) {
+            await jar.copy(destJar.path);
+            onLog('  📎 gradle-wrapper.jar copied from ${p.basename(base)}');
+            return;
+          }
+          // Sometimes it's nested one more level inside the distribution
+          final inner = Directory(
+              p.join(hash.path, hash.path.split(p.separator).last + '-bin'));
+          final jar2 = File(p.join(inner.path, 'gradle-wrapper.jar'));
+          if (jar2.existsSync()) {
+            await jar2.copy(destJar.path);
+            onLog('  📎 gradle-wrapper.jar copied from ${p.basename(base)}');
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Broad search: any gradle-wrapper.jar anywhere under ~/.gradle/wrapper/dists
+    final distsDir =
+        Directory(p.join(home, '.gradle', 'wrapper', 'dists'));
+    if (distsDir.existsSync()) {
+      try {
+        final jars = distsDir
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((f) => p.basename(f.path) == 'gradle-wrapper.jar')
+            .toList();
+        if (jars.isNotEmpty) {
+          await jars.first.copy(destJar.path);
+          onLog('  📎 gradle-wrapper.jar copied from local Gradle cache');
+          return;
+        }
+      } catch (_) {}
+    }
+
+    onLog('  ⚠️  gradle-wrapper.jar not found locally — '
+        'Android Studio will download it on first open.');
   }
 
   String get _systemPrompt => '''

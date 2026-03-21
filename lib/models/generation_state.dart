@@ -2,8 +2,12 @@ enum GenerationStatus {
   idle,
   generating,
   writingFiles,
-  complete,
-  error,
+  complete,      // code written, no build requested
+  building,      // Gradle running
+  fixing,        // LLM fixing compiler errors
+  buildSuccess,  // APK produced
+  buildFailed,   // gave up after maxAttempts
+  error,         // fatal error in generation
 }
 
 class GenerationState {
@@ -15,6 +19,12 @@ class GenerationState {
   final String? errorMessage;
   final Map<String, String> generatedFiles;
 
+  // Build phase fields
+  final int buildAttempt;
+  final int maxBuildAttempts;
+  final String? apkPath;
+  final List<String> buildErrors;
+
   const GenerationState({
     this.status = GenerationStatus.idle,
     this.statusMessage = '',
@@ -23,6 +33,10 @@ class GenerationState {
     this.outputPath,
     this.errorMessage,
     this.generatedFiles = const {},
+    this.buildAttempt = 0,
+    this.maxBuildAttempts = 3,
+    this.apkPath,
+    this.buildErrors = const [],
   });
 
   GenerationState copyWith({
@@ -33,6 +47,10 @@ class GenerationState {
     String? outputPath,
     String? errorMessage,
     Map<String, String>? generatedFiles,
+    int? buildAttempt,
+    int? maxBuildAttempts,
+    String? apkPath,
+    List<String>? buildErrors,
   }) {
     return GenerationState(
       status: status ?? this.status,
@@ -42,6 +60,10 @@ class GenerationState {
       outputPath: outputPath ?? this.outputPath,
       errorMessage: errorMessage ?? this.errorMessage,
       generatedFiles: generatedFiles ?? this.generatedFiles,
+      buildAttempt: buildAttempt ?? this.buildAttempt,
+      maxBuildAttempts: maxBuildAttempts ?? this.maxBuildAttempts,
+      apkPath: apkPath ?? this.apkPath,
+      buildErrors: buildErrors ?? this.buildErrors,
     );
   }
 }

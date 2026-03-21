@@ -11,11 +11,15 @@ class AppProvider extends ChangeNotifier {
   String _outputDirectory = '';
   String _appName = 'MyApp';
   String _packageName = 'com.example.myapp';
+  bool _autoBuild = true;
+  int _maxBuildAttempts = 3;
 
   LLMConfig get llmConfig => _llmConfig;
   String get outputDirectory => _outputDirectory;
   String get appName => _appName;
   String get packageName => _packageName;
+  bool get autoBuild => _autoBuild;
+  int get maxBuildAttempts => _maxBuildAttempts;
 
   bool get isConfigured => _llmConfig.apiKey.isNotEmpty;
 
@@ -29,6 +33,8 @@ class AppProvider extends ChangeNotifier {
     final apiKey = prefs.getString('api_key') ?? '';
     final customEndpoint = prefs.getString('custom_endpoint');
     _outputDirectory = prefs.getString('output_directory') ?? '';
+    _autoBuild = prefs.getBool('auto_build') ?? true;
+    _maxBuildAttempts = prefs.getInt('max_build_attempts') ?? 3;
 
     _llmConfig = LLMConfig(
       provider: LLMProvider.values[providerIndex],
@@ -77,6 +83,20 @@ class AppProvider extends ChangeNotifier {
 
   void setPackageName(String name) {
     _packageName = name;
+    notifyListeners();
+  }
+
+  Future<void> setAutoBuild(bool value) async {
+    _autoBuild = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('auto_build', value);
+    notifyListeners();
+  }
+
+  Future<void> setMaxBuildAttempts(int value) async {
+    _maxBuildAttempts = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('max_build_attempts', value);
     notifyListeners();
   }
 }

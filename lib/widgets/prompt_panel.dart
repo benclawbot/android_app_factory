@@ -150,6 +150,10 @@ class _PromptPanelState extends State<PromptPanel> {
             ),
             const SizedBox(height: 16),
 
+            // Auto-build row
+            _buildAutoBuildRow(appProv),
+            const SizedBox(height: 12),
+
             // Generate button
             SizedBox(
               width: double.infinity,
@@ -308,6 +312,110 @@ class _PromptPanelState extends State<PromptPanel> {
     );
   }
 
+  Widget _buildAutoBuildRow(AppProvider appProv) {
+    const attempts = [1, 2, 3, 5];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: appProv.autoBuild
+              ? AppColors.accent.withValues(alpha: 0.4)
+              : AppColors.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Checkbox
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: Checkbox(
+              value: appProv.autoBuild,
+              onChanged: (v) => appProv.setAutoBuild(v ?? true),
+              activeColor: AppColors.accent,
+              side: const BorderSide(color: AppColors.textMuted, width: 1.5),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Build APK & auto-fix errors',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  appProv.autoBuild
+                      ? 'Compile with Gradle after generation, fix errors with AI'
+                      : 'Skip build — generate code only',
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (appProv.autoBuild) ...[
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Text(
+                  'Max fix attempts',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 10),
+                ),
+                const SizedBox(height: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: DropdownButton<int>(
+                    value: attempts.contains(appProv.maxBuildAttempts)
+                        ? appProv.maxBuildAttempts
+                        : 3,
+                    items: attempts
+                        .map((n) => DropdownMenuItem(
+                              value: n,
+                              child: Text(
+                                '$n',
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) appProv.setMaxBuildAttempts(v);
+                    },
+                    dropdownColor: AppColors.card,
+                    underline: const SizedBox.shrink(),
+                    isDense: true,
+                    icon: const Icon(Icons.expand_more,
+                        size: 16, color: AppColors.textMuted),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   void _generate(BuildContext context) {
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) {
@@ -337,6 +445,8 @@ class _PromptPanelState extends State<PromptPanel> {
           packageName: _packageController.text.trim(),
           llmConfig: appProv.llmConfig,
           historyProvider: context.read<HistoryProvider>(),
+          autoBuild: appProv.autoBuild,
+          maxBuildAttempts: appProv.maxBuildAttempts,
         );
   }
 }
