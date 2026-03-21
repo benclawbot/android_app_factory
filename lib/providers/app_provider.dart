@@ -10,7 +10,8 @@ class AppProvider extends ChangeNotifier {
 
   String _outputDirectory = '';
   String _appName = 'MyApp';
-  String _packageName = 'com.example.myapp';
+  String _packageName = 'com.app.myapp';
+  String _prompt = '';
   bool _autoBuild = true;
   int _maxBuildAttempts = 3;
   String? _customIconPath; // Path to user-imported icon file (null = auto-generate)
@@ -19,6 +20,7 @@ class AppProvider extends ChangeNotifier {
   String get outputDirectory => _outputDirectory;
   String get appName => _appName;
   String get packageName => _packageName;
+  String get prompt => _prompt;
   bool get autoBuild => _autoBuild;
   int get maxBuildAttempts => _maxBuildAttempts;
   String? get customIconPath => _customIconPath;
@@ -88,8 +90,22 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setPrompt(String value) {
+    _prompt = value;
+    // No notifyListeners — avoid rebuild loops from text changes
+  }
+
   void setCustomIconPath(String? path) {
     _customIconPath = path;
+    notifyListeners();
+  }
+
+  /// Resets all app-specific fields for a fresh new generation.
+  void resetForNewApp() {
+    _appName = 'MyApp';
+    _packageName = 'com.app.myapp';
+    _prompt = '';
+    _customIconPath = null;
     notifyListeners();
   }
 

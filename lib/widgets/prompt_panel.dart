@@ -22,9 +22,9 @@ class PromptPanel extends StatefulWidget {
 }
 
 class _PromptPanelState extends State<PromptPanel> {
-  final _promptController = TextEditingController();
-  final _appNameController = TextEditingController(text: 'MyApp');
-  final _packageController = TextEditingController(text: 'com.app.myapp');
+  late final TextEditingController _promptController;
+  late final TextEditingController _appNameController;
+  late final TextEditingController _packageController;
   final _appNameFocusNode = FocusNode();
 
   // Icon preview state
@@ -40,8 +40,21 @@ class _PromptPanelState extends State<PromptPanel> {
   @override
   void initState() {
     super.initState();
-    // Generate initial icon
-    _regenerateIcon('MyApp');
+    // Restore values from AppProvider so they survive tab switches
+    final appProv = context.read<AppProvider>();
+    _appNameController = TextEditingController(text: appProv.appName);
+    _packageController = TextEditingController(text: appProv.packageName);
+    _promptController = TextEditingController(text: appProv.prompt);
+
+    // Persist prompt changes back to AppProvider
+    _promptController.addListener(() {
+      context.read<AppProvider>().setPrompt(_promptController.text);
+    });
+
+    // Generate initial icon from current app name
+    _regenerateIcon(appProv.appName);
+    _lastGeneratedName = appProv.appName;
+
     // Listen for app name field losing focus
     _appNameFocusNode.addListener(_onAppNameFocusChanged);
   }
@@ -218,6 +231,26 @@ A recipe book app with a home screen showing recipe cards with photos. Each card
     _generateDescription(name, appProv.llmConfig);
   }
 
+  // ── New App reset ──────────────────────────────────────────────────────────
+
+  void _resetForNewApp(BuildContext context) {
+    // Reset provider state
+    final appProv = context.read<AppProvider>();
+    appProv.resetForNewApp();
+
+    // Reset console
+    context.read<GenerationProvider>().reset();
+
+    // Reset text controllers
+    _appNameController.text = 'MyApp';
+    _packageController.text = 'com.app.myapp';
+    _promptController.text = '';
+    _lastGeneratedName = '';
+
+    // Reset icon preview
+    _regenerateIcon('MyApp');
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -243,26 +276,68 @@ A recipe book app with a home screen showing recipe cards with photos. Each card
                 child: const Icon(Icons.auto_awesome, color: AppColors.onPrimary, size: 20),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Describe Your App',
-                    style: TextStyle(
-                      color: AppColors.onSurface,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.01,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Describe Your App',
+                      style: TextStyle(
+                        color: AppColors.onSurface,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.01,
+                      ),
+                    ),
+                    Text(
+                      'Tell the AI what Android app you want to build',
+                      style: TextStyle(
+                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // New App button — resets everything for a fresh generation
+              Tooltip(
+                message: 'Start a new app (reset all fields)',
+                child: InkWell(
+                  onTap: genProv.isGenerating ? null : () => _resetForNewApp(context),
+                  borderRadius: BorderRadius.zero,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: genProv.isGenerating
+                          ? AppColors.surfaceContainer
+                          : AppColors.surfaceContainerHigh,
+                      borderRadius: BorderRadius.zero,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add_circle_outline,
+                          size: 16,
+                          color: genProv.isGenerating
+                              ? AppColors.onSurfaceVariant
+                              : AppColors.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'New App',
+                          style: TextStyle(
+                            color: genProv.isGenerating
+                                ? AppColors.onSurfaceVariant
+                                : AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Text(
-                    'Tell the AI what Android app you want to build',
-                    style: TextStyle(
-                      color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),

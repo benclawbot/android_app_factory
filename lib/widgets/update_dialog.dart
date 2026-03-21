@@ -1,10 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import '../models/app_record.dart';
 import '../providers/app_provider.dart';
 import '../providers/history_provider.dart';
 import '../services/app_updater.dart';
+import '../services/build_fix_service.dart';
+import '../services/build_service.dart';
 import '../theme/app_theme.dart';
 
 class UpdateDialog extends StatefulWidget {
@@ -21,12 +26,15 @@ class _UpdateDialogState extends State<UpdateDialog> {
   final _logScrollController = ScrollController();
 
   UpdateMode _mode = UpdateMode.smartPatch;
+  bool _autoBuild = true;
+  int _maxBuildAttempts = 3;
   bool _isUpdating = false;
   double _progress = 0.0;
   final List<String> _logs = [];
   String? _errorMessage;
   bool _done = false;
   String? _selectedFile;
+  String? _apkPath;
 
   @override
   void dispose() {
@@ -71,11 +79,35 @@ class _UpdateDialogState extends State<UpdateDialog> {
         },
       );
 
-      final updated = await updater.update(
+      var updated = await updater.update(
         record: widget.record,
         updatePrompt: prompt,
         mode: _mode,
       );
+
+      if (!mounted) return;
+
+      // ── Build + fix loop ──────────────────────────────────────────────
+      if (_autoBuild) {
+        final buildResult = await _runBuildLoop(
+          updated: updated,
+          llmConfig: appProv.llmConfig,
+        );
+
+        if (!mounted) return;
+
+        // Update record with build results
+        updated = updated.copyWith(
+          buildStatus: buildResult.success ? BuildStatus.success : BuildStatus.failed,
+          apkPath: buildResult.apkPath,
+          buildAttempts: _maxBuildAttempts,
+        );
+
+        if (buildResult.success && buildResult.apkPath != null) {
+          _apkPath = buildResult.apkPath;
+          _openApkFolder(buildResult.apkPath!);
+        }
+      }
 
       if (!mounted) return;
 
@@ -94,6 +126,89 @@ class _UpdateDialogState extends State<UpdateDialog> {
         _logs.add('Error: $e');
       });
     }
+  }
+
+  /// Runs the build + fix loop, same logic as GenerationProvider.
+  Future<BuildResult> _runBuildLoop({
+    required AppRecord updated,
+    required llmConfig,
+  }) async {
+    var liveFiles = Map<String, String>.from(updated.files);
+
+    for (var attempt = 1; attempt <= _maxBuildAttempts; attempt++) {
+      _addLog('');
+      _addLog('══════════════════════════════════════════');
+      _addLog('🔨 BUILD — Attempt $attempt / $_maxBuildAttempts');
+      _addLog('══════════════════════════════════════════');
+
+      final buildService = BuildService(onLine: _addLog);
+      final result = await buildService.runBuild(updated.outputPath);
+
+      if (result.success) {
+        _addLog('');
+        _addLog('✅ APK built successfully!');
+        if (result.apkPath != null) _addLog('📦 APK: ${result.apkPath}');
+        return result;
+      }
+
+      if (attempt == _maxBuildAttempts) {
+        _addLog('');
+        _addLog('❌ Build failed after $_maxBuildAttempts attempt(s). Giving up.');
+        return result;
+      }
+
+      // Fix phase
+      _addLog('');
+      _addLog('🔧 Fixing errors (attempt $attempt/$_maxBuildAttempts)...');
+
+      final fixer = BuildFixService(
+        llmConfig: llmConfig,
+        onLog: _addLog,
+      );
+
+      final fixedFiles = await fixer.fix(
+        errors: result.errors,
+        allFiles: liveFiles,
+        projectPath: updated.outputPath,
+        packageName: updated.packageName,
+        appName: updated.appName,
+        attempt: attempt,
+        maxAttempts: _maxBuildAttempts,
+      );
+
+      // Write fixed files to disk
+      final packagePath = updated.packageName.replaceAll('.', '/');
+      for (final entry in fixedFiles.entries) {
+        String filePath = entry.key;
+        if (!filePath.contains('/') && !filePath.startsWith('app/')) {
+          filePath = 'app/src/main/java/$packagePath/$filePath';
+        }
+        if (!filePath.endsWith('.kt')) filePath = '$filePath.kt';
+
+        final absFile = File(p.join(updated.outputPath, filePath));
+        await absFile.parent.create(recursive: true);
+        await absFile.writeAsString(entry.value);
+        liveFiles[filePath] = entry.value;
+        _addLog('  🔧 Fixed: $filePath');
+      }
+    }
+
+    return const BuildResult(success: false, outputLines: [], errors: []);
+  }
+
+  void _addLog(String log) {
+    if (!mounted) return;
+    setState(() => _logs.add(log));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_logScrollController.hasClients) {
+        _logScrollController.jumpTo(_logScrollController.position.maxScrollExtent);
+      }
+    });
+  }
+
+  void _openApkFolder(String apkPath) {
+    final winPath = apkPath.replaceAll('/', '\\');
+    Process.start('explorer.exe', ['/select,$winPath'], mode: ProcessStartMode.detached);
   }
 
   @override
@@ -289,6 +404,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
         ),
         const SizedBox(height: 16),
         _buildModeSelector(),
+        const SizedBox(height: 12),
+        _buildAutoBuildToggle(),
         if (_errorMessage != null) ...[
           const SizedBox(height: 12),
           Container(
@@ -346,6 +463,68 @@ class _UpdateDialogState extends State<UpdateDialog> {
             description: 'Regenerate all source files from scratch',
             onChanged: (v) => setState(() => _mode = v!),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAutoBuildToggle() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.zero,
+        border: _autoBuild
+            ? Border.all(color: AppColors.primary.withValues(alpha: 0.4))
+            : null,
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: Checkbox(
+              value: _autoBuild,
+              onChanged: (v) => setState(() => _autoBuild = v ?? true),
+              activeColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.onSurfaceVariant, width: 1.5),
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Build APK & auto-fix errors after update',
+              style: TextStyle(
+                color: AppColors.onSurface,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          if (_autoBuild) ...[
+            const Text('Max ', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 10)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: const BoxDecoration(color: AppColors.surfaceContainerHigh),
+              child: DropdownButton<int>(
+                value: _maxBuildAttempts,
+                items: [1, 2, 3, 5]
+                    .map((n) => DropdownMenuItem(
+                          value: n,
+                          child: Text('$n', style: const TextStyle(color: AppColors.onSurface, fontSize: 12)),
+                        ))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) setState(() => _maxBuildAttempts = v);
+                },
+                dropdownColor: AppColors.surfaceContainerHighest,
+                underline: const SizedBox.shrink(),
+                isDense: true,
+                icon: const Icon(Icons.expand_more, size: 14, color: AppColors.onSurfaceVariant),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -433,6 +612,20 @@ class _UpdateDialogState extends State<UpdateDialog> {
       return Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          if (_apkPath != null) ...[
+            ElevatedButton.icon(
+              onPressed: () => _openApkFolder(_apkPath!),
+              icon: const Icon(Icons.folder_open, size: 16),
+              label: const Text('Open APK Folder'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.surfaceContainerHigh,
+                foregroundColor: AppColors.primary,
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.check, size: 18),
