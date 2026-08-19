@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/android-app-factory-banner.svg" alt="Android App Factory" width="100%" />
+</p>
+
 # 🤖 Android App Factory
 
 > **AI-powered Android app generator.** Describe your app in plain English — get a complete, ready-to-open Kotlin/Jetpack Compose Android Studio project in minutes.
