@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p;
 
 import '../models/llm_config.dart';
+import 'generated_path_guard.dart';
 import '../services/llm_service.dart';
 import '../templates/android_templates.dart';
 
@@ -74,16 +75,9 @@ class ProjectGenerator {
 
       onProgress(0.80);
 
-      // LLM-generated Kotlin files
+      // Model-supplied filenames must be validated before reaching the filesystem.
       for (final entry in parsedFiles.entries) {
-        String filePath = entry.key;
-        // Ensure proper path
-        if (!filePath.startsWith('app/src/main/java/')) {
-          filePath = 'app/src/main/java/$packagePath/$filePath';
-        }
-        if (!filePath.endsWith('.kt')) {
-          filePath = '$filePath.kt';
-        }
+        final filePath = safeGeneratedKotlinPath(entry.key, packagePath);
         generatedFiles[filePath] = entry.value;
       }
 
@@ -98,11 +92,19 @@ class ProjectGenerator {
       // Step 5: Write files to disk
       onLog('💾 Writing ${generatedFiles.length} files to disk...');
 
+      final output = Directory(outputDir);
+      await output.create(recursive: true);
+      final resolvedRoot = await output.resolveSymbolicLinks();
       for (final entry in generatedFiles.entries) {
-        final file = File(p.join(outputDir, entry.key));
+        final file = File(safeGeneratedOutputPath(resolvedRoot, entry.key));
         await file.parent.create(recursive: true);
+        // Refuse an existing symlinked directory that escapes the output root.
+        final realParent = await file.parent.resolveSymbolicLinks();
+        if (!p.isWithin(resolvedRoot, realParent) && !p.equals(resolvedRoot, realParent)) {
+          throw FormatException('Generated output escapes project folder');
+        }
         await file.writeAsString(entry.value);
-        onLog('  📄 ${entry.key}');
+        onLog('  📄 ' + entry.key);
       }
 
       // Write gradlew (needed to build)
