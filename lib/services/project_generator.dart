@@ -92,17 +92,8 @@ class ProjectGenerator {
       // Step 5: Write files to disk
       onLog('💾 Writing ${generatedFiles.length} files to disk...');
 
-      final output = Directory(outputDir);
-      await output.create(recursive: true);
-      final resolvedRoot = await output.resolveSymbolicLinks();
       for (final entry in generatedFiles.entries) {
-        final file = File(safeGeneratedOutputPath(resolvedRoot, entry.key));
-        await file.parent.create(recursive: true);
-        // Refuse an existing symlinked directory that escapes the output root.
-        final realParent = await file.parent.resolveSymbolicLinks();
-        if (!p.isWithin(resolvedRoot, realParent) && !p.equals(resolvedRoot, realParent)) {
-          throw FormatException('Generated output escapes project folder');
-        }
+        final file = File(await safeGeneratedFileDestination(outputDir, entry.key));
         await file.writeAsString(entry.value);
         onLog('  📄 ' + entry.key);
       }
