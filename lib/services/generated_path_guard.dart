@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:path/path.dart' as p;
 
 String safeGeneratedKotlinPath(String raw, String packagePath) {
@@ -27,4 +28,24 @@ String safeGeneratedOutputPath(String outputDir, String relative) {
   final target = p.normalize(p.join(root, name));
   if (!p.isWithin(root, target)) throw FormatException('Path escapes output directory');
   return target;
+}
+
+
+/// Reject existing directory and file symlinks that escape the project root.
+Future<String> safeGeneratedFileDestination(String outputDir, String relative) async {
+  final root = Directory(outputDir);
+  await root.create(recursive: true);
+  final canonicalRoot = await root.resolveSymbolicLinks();
+  final path = safeGeneratedOutputPath(canonicalRoot, relative);
+  final parent = Directory(p.dirname(path));
+  await parent.create(recursive: true);
+  final realParent = await parent.resolveSymbolicLinks();
+  if (!p.isWithin(canonicalRoot, realParent) &&
+      !p.equals(canonicalRoot, realParent)) {
+    throw FormatException('Generated output escapes project folder via symlink');
+  }
+  if (await FileSystemEntity.type(path, followLinks: false) == FileSystemEntityType.link) {
+    throw FormatException('Generated output destination is a symlink');
+  }
+  return path;
 }
